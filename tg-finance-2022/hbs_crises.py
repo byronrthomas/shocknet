@@ -12,9 +12,9 @@ CRISIS_COLUMNS = [
     'Inflation Crises'
 ]
 
-SINGLE_CHANGE_COLUMNS = [
-    'Gold Standard', # NOTE: 1->0 is important here
-    'Independence',  # Whereas here it's 0->1
+PERMANENT_CHANGE_COLUMNS = [
+    'Outside Gold Standard', # NOTE: 0->1 is important here
+    'Independence',
 ]
 
 def detect_crisis_of_type(df, crisis_type):
@@ -54,13 +54,48 @@ def detect_crisis_of_type(df, crisis_type):
                 # Always update in_crisis tracking var
                 in_crisis = cleandicator
 
-
     return res
-            
+
+def detect_instant_change(df, change_type, is_permanent):
+    print('\n\n\nGoing to detect a instantaneous of type', change_type)
+    pdf = df.pivot(index='Year', columns='Country', values=change_type)
+    pdf = pdf.sort_index()
+    res = []
+    for country in pdf:
+        print('Working on country', country)
+        # Iterate a country at a time
+        last_val = None
+        start_year = None
+        for year, indicator in pdf[country].items():
+            if last_val is None: 
+                # For this kind of change, skip over any initial 1.0s
+                # (i.e. out of gold std at start)
+                if indicator == 0.0:
+                    print(f'For {change_type} skipped up until {year} in {country} when indicator first become 0.0')
+                    last_val = indicator
+                continue
+
+            if last_val != indicator:
+                print(f'Change detected, indicator became {indicator}')
+                if last_val == 0.0 and indicator > 0.0:
+                    print(f'{change_type} detected in {year}')
+                    if start_year and is_permanent:
+                        raise ValueError(f'Something wrong - spotted {change_type} in {year} of country {country}, which we expected to be permanent, but seems to have previously happened in {start_year}')
+                    res.append({"start": year, "end": year, "type": change_type, "country": country})
+                    start_year = year
+                elif is_permanent:
+                    raise ValueError(f'Unexpected change in indicator {change_type} in {year} for {country} - changed from {last_val} to {indicator} ???')
+                    
+                
+                # Always update tracking var
+                last_val = indicator
+
+    return res  
     
 
 def detectcrises(path):
     hbsdf = pd.read_csv(path).rename(columns={'Banking Crisis ': 'Banking Crisis'})
+    hbsdf['Outside Gold Standard'] = hbsdf['Gold Standard'].map({1.0: 0.0, 0.0: 1.0})
     print(hbsdf)
     print('DATA TYPES')
     print(hbsdf.dtypes)
@@ -70,6 +105,11 @@ def detectcrises(path):
     for ctype in CRISIS_COLUMNS:
         r1 = detect_crisis_of_type(hbsdf, ctype)
         print(f'\nFound {len(r1)} instances of {ctype}')
+        all_crises.extend(r1)
+
+    for ptype in PERMANENT_CHANGE_COLUMNS:
+        r1 = detect_instant_change(hbsdf, ptype, ptype == 'Independence')
+        print(f'\nFound {len(r1)} instances of {ptype}')
         all_crises.extend(r1)
     
     print(f'\n\nFound {len(all_crises)} single-country crises in TOTAL')

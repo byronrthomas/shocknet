@@ -1,6 +1,8 @@
-import csv
-from distutils.command.clean import clean
 import pandas as pd
+import sys
+import pyTigerGraph as tg
+from collections import namedtuple
+import cfg
 
 CRISIS_COLUMNS = [
     'Banking Crisis',
@@ -91,7 +93,30 @@ def detect_instant_change(df, change_type, is_permanent):
                 last_val = indicator
 
     return res  
-    
+
+CountryInfo = namedtuple("CountryInfo", "index code")
+def summarise_country_info(df):
+    df = df[['Country', 'CC3']]
+    res = {}
+    i = 0
+    for r in df.itertuples():
+        if r.Country not in res:
+            res[r.Country] = CountryInfo(i, r.CC3)
+            i += 1
+    return res
+
+def summarise_event_starts(event_occurrences):
+    events_by_type_and_year = {}
+    i = 0
+    for ev in event_occurrences:
+        if ev['type'] not in events_by_type_and_year:
+            events_by_type_and_year[ev['type']] = {}
+        by_type = events_by_type_and_year[ev['type']]
+        if ev['start'] not in by_type:
+            by_type[ev['start']] = i
+            i += 1
+    return events_by_type_and_year
+
 
 def detectcrises(path):
     hbsdf = pd.read_csv(path).rename(columns={'Banking Crisis ': 'Banking Crisis'})
@@ -115,9 +140,72 @@ def detectcrises(path):
     print(f'\n\nFound {len(all_crises)} single-country crises in TOTAL')
     for r in all_crises:
         print(r)
+    all_countries = summarise_country_info(hbsdf)
+    return (all_crises, all_countries)
 
-# STILL NEED TO DETECT THE INDEPENDENCE / GOLD STANDARD CHANGES
-# Probably remap the gold standard to be "Out_Of_Gold_Std" so that we can detect 0->1 in both cases   
+COUNTRY_VERTEX='country'
+EVENT_VERTEX='event'
+OCCURRED_EDGE='occurred'
+HBS_GRAPH='hbs_event_occurrences'
+def recreate_schema(host, username, password):
+    conn = tg.TigerGraphConnection(host=host, username=username, password=password)
+    print(conn.gsql('ls', options=[]))
+    print(conn.gsql('DROP ALL', options=[]))
+    print(conn.gsql('ls', options=[]))
+    print(conn.gsql(f'''
+create vertex {COUNTRY_VERTEX} (primary_id country_id UINT, name STRING, code STRING)
+
+create vertex {EVENT_VERTEX} (primary_id event_id UINT, event_type STRING, start_year UINT)
+                      
+create undirected edge {OCCURRED_EDGE} (from country, to event, end_year UINT)
+
+create graph {HBS_GRAPH} (country, event, occurred)
+''', options=[]))
+
+def add_to_graph(all_crises, all_countries, host, username, password):
+    conn = tg.TigerGraphConnection(host=host, username=username, password=password, graphname=HBS_GRAPH)
+    conn.getToken(cfg.secret)
+    print('Able to get a token')
+    country_nodes = [(v.index, {'name': k, 'code': v.code}) for k,v in all_countries.items()]
+    print("Upserted some country vertices:", conn.upsertVertices(COUNTRY_VERTEX, country_nodes))
+
+    all_event_starts = summarise_event_starts(all_crises)
+    event_nodes = [(v2, {'event_type': k, 'start_year': k2}) for k, inner in all_event_starts.items() for k2, v2 in inner.items()]
+    print("Upserted some event vertices:", conn.upsertVertices(EVENT_VERTEX, event_nodes))
+
+    occ_edges = [
+        (all_countries[crisis['country']].index, 
+        all_event_starts[crisis['type']][crisis['start']], 
+        {'end_year': crisis['end']}) 
+        for crisis in all_crises]
+    print('Upserted some edges: ', 
+        conn.upsertEdges(COUNTRY_VERTEX, OCCURRED_EDGE, EVENT_VERTEX, occ_edges))
+    # print(occ_edges)
+
+    
+
+def check_args():
+    opts = [opt for opt in sys.argv[1:] if opt.startswith("-")]
+    args = [arg for arg in sys.argv[1:] if not arg.startswith("-")]
+
+    KNOWN_OPTS = {'--regen-schema': 'regen-schema'}
+    rejected = args
+    rejected.extend([r for r in opts if r not in KNOWN_OPTS])
+    if len(rejected):
+        raise SystemExit(f"Usage: {sys.argv[0]} [--regen-schema]...")
+    return {KNOWN_OPTS[k]:k in opts for k in KNOWN_OPTS}
 
 if __name__ == "__main__":
-    detectcrises('resources/hbs-crisis-data/HBS_Cleaned_20160923_global_crisis_data.csv')    
+    args = check_args()
+    # print(check_args)
+    TEST_HOST='https://bt-h-gfa-fin-2022-03-09.i.tgcloud.io/'
+    TEST_USER='tigergraph'
+    with open('.env') as pass_file:
+        password = pass_file.read()
+    if args['regen-schema']:
+        recreate_schema(host=TEST_HOST, username=TEST_USER, password=password)
+        print('Now that schema has been updated you will need to create a secret and then add it to cfg.py to be able to do further operations (don\'t run with --regen-schema again unless you want to repeat these steps!)')
+    else:
+        print('Assuming that schema and secret are in place...')
+        all_crises, all_countries = detectcrises('resources/hbs-crisis-data/HBS_Cleaned_20160923_global_crisis_data.csv')  
+        add_to_graph(all_crises=all_crises, all_countries=all_countries, host=TEST_HOST, username=TEST_USER, password=password)

@@ -2,7 +2,7 @@ import pandas as pd
 import sys
 import pyTigerGraph as tg
 from collections import namedtuple
-import cfg
+from dotenv import dotenv_values
 
 CRISIS_COLUMNS = [
     'Banking Crisis',
@@ -147,8 +147,8 @@ COUNTRY_VERTEX='country'
 EVENT_VERTEX='event'
 OCCURRED_EDGE='occurred'
 HBS_GRAPH='hbs_event_occurrences'
-def recreate_schema(host, username, password):
-    conn = tg.TigerGraphConnection(host=host, username=username, password=password)
+def recreate_schema(config):
+    conn = tg.TigerGraphConnection(host=config.HOSTNAME, username=config.USERNAME, password=config.PASSWORD)
     print(conn.gsql('ls', options=[]))
     print(conn.gsql('DROP ALL', options=[]))
     print(conn.gsql('ls', options=[]))
@@ -162,9 +162,9 @@ create undirected edge {OCCURRED_EDGE} (from country, to event, end_year UINT)
 create graph {HBS_GRAPH} (country, event, occurred)
 ''', options=[]))
 
-def add_to_graph(all_crises, all_countries, host, username, password):
-    conn = tg.TigerGraphConnection(host=host, username=username, password=password, graphname=HBS_GRAPH)
-    conn.getToken(cfg.secret)
+def add_to_graph(all_crises, all_countries, config):
+    conn = tg.TigerGraphConnection(host=config.HOSTNAME, username=config.USERNAME, password=config.PASSWORD, graphname=HBS_GRAPH)
+    conn.getToken(config.SECRET)
     print('Able to get a token')
     country_nodes = [(v.index, {'name': k, 'code': v.code}) for k,v in all_countries.items()]
     print("Upserted some country vertices:", conn.upsertVertices(COUNTRY_VERTEX, country_nodes))
@@ -198,14 +198,11 @@ def check_args():
 if __name__ == "__main__":
     args = check_args()
     # print(check_args)
-    TEST_HOST='https://bt-h-gfa-fin-2022-03-09.i.tgcloud.io/'
-    TEST_USER='tigergraph'
-    with open('.env') as pass_file:
-        password = pass_file.read()
+    cfg = dotenv_values('.env')
     if args['regen-schema']:
-        recreate_schema(host=TEST_HOST, username=TEST_USER, password=password)
+        recreate_schema(host=TEST_HOST, username=TEST_USER, password=cfg.password)
         print('Now that schema has been updated you will need to create a secret and then add it to cfg.py to be able to do further operations (don\'t run with --regen-schema again unless you want to repeat these steps!)')
     else:
         print('Assuming that schema and secret are in place...')
         all_crises, all_countries = detectcrises('resources/hbs-crisis-data/HBS_Cleaned_20160923_global_crisis_data.csv')  
-        add_to_graph(all_crises=all_crises, all_countries=all_countries, host=TEST_HOST, username=TEST_USER, password=password)
+        add_to_graph(all_crises=all_crises, all_countries=all_countries, host=TEST_HOST, username=TEST_USER, password=cfg.password)

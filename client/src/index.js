@@ -1,3 +1,3 @@
-import message from './message';
+import {initMap} from './map';
 
-console.log(message);
+initMap(document.getElementById("map"));

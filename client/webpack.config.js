@@ -17,5 +17,12 @@ module.exports = {
     title: 'ByronT: TigerGraph GraphForAll Finance Challenge',
     // Load a custom template (lodash by default)
     template: 'src/template-index.html'
-  })]
+  })],
+  module: {
+    rules: [{
+      test: /\.js$/,
+     exclude: /node_modules/,
+     use: 'babel-loader'
+   }]
+ }
 };

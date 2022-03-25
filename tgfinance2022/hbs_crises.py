@@ -147,11 +147,14 @@ COUNTRY_VERTEX='country'
 EVENT_VERTEX='event'
 OCCURRED_EDGE='occurred'
 HBS_GRAPH='hbs_event_occurrences'
-def recreate_schema(config):
-    conn = tg.TigerGraphConnection(host=config.HOSTNAME, username=config.USERNAME, password=config.PASSWORD)
+def recreate_schema(drop_all, config):
+    conn = tg.TigerGraphConnection(host=config['HOSTNAME'], username=config['USERNAME'], password=config['PASSWORD'])
     print(conn.gsql('ls', options=[]))
-    print(conn.gsql('DROP ALL', options=[]))
-    print(conn.gsql('ls', options=[]))
+    if drop_all:
+        print('GOING TO DROP ALL!!!!!')
+        print(conn.gsql('DROP ALL', options=[]))
+        print(conn.gsql('ls', options=[]))
+    
     print(conn.gsql(f'''
 create vertex {COUNTRY_VERTEX} (primary_id country_id UINT, name STRING, code STRING)
 
@@ -161,10 +164,12 @@ create undirected edge {OCCURRED_EDGE} (from country, to event, end_year UINT)
 
 create graph {HBS_GRAPH} (country, event, occurred)
 ''', options=[]))
+    if drop_all:
+        print('Now that drop all has been run you will need to create a secret and then add it to cfg.py to be able to do further operations (don\'t run with --drop-all again unless you want to repeat these steps!)')
 
 def add_to_graph(all_crises, all_countries, config):
-    conn = tg.TigerGraphConnection(host=config.HOSTNAME, username=config.USERNAME, password=config.PASSWORD, graphname=HBS_GRAPH)
-    conn.getToken(config.SECRET)
+    conn = tg.TigerGraphConnection(host=config['HOSTNAME'], username=config['USERNAME'], password=config['PASSWORD'], graphname=HBS_GRAPH)
+    conn.getToken(config['SECRET'])
     print('Able to get a token')
     country_nodes = [(v.index, {'name': k, 'code': v.code}) for k,v in all_countries.items()]
     print("Upserted some country vertices:", conn.upsertVertices(COUNTRY_VERTEX, country_nodes))
@@ -200,9 +205,8 @@ if __name__ == "__main__":
     # print(check_args)
     cfg = dotenv_values('.env')
     if args['regen-schema']:
-        recreate_schema(host=TEST_HOST, username=TEST_USER, password=cfg.password)
-        print('Now that schema has been updated you will need to create a secret and then add it to cfg.py to be able to do further operations (don\'t run with --regen-schema again unless you want to repeat these steps!)')
+        recreate_schema(False, cfg) # Need an arg if you want to drop-all
     else:
         print('Assuming that schema and secret are in place...')
         all_crises, all_countries = detectcrises('resources/hbs-crisis-data/HBS_Cleaned_20160923_global_crisis_data.csv')  
-        add_to_graph(all_crises=all_crises, all_countries=all_countries, host=TEST_HOST, username=TEST_USER, password=cfg.password)
+        add_to_graph(all_crises=all_crises, all_countries=all_countries, config=cfg)

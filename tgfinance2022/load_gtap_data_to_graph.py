@@ -6,10 +6,13 @@ from dotenv import dotenv_values
 
 COUNTRY_VERTEX='country'
 PRODUCT_VERTEX='product'
+IMPORTER_VERTEX='importer'
 PRODUCER_VERTEX='producer'
 LOCATION_EDGE='located_in'
 PRODUCTION_EDGE='produces'
+TRADE_EDGE='trades'
 DOMESTIC_INPUT_EDGE='uses_domestic_input'
+IMPORTED_INPUT_EDGE='uses_imported_input'
 UNFILTERED_GRAPH='ecomonic_links_unfiltered'
 
 def items_with_ids(lookup_key, df):
@@ -17,11 +20,13 @@ def items_with_ids(lookup_key, df):
     return {vals[i]: i for i in range(len(vals))}
 
 def upsert_nodes(conn, vertex_type, nodes):
+    print(f"Asked to upsert {len(nodes)} {vertex_type} vertices")
     count = conn.upsertVertices(vertex_type, nodes)
     print(f"Upserted {count} {vertex_type} vertices")
 
 MAX_EDGE_REQUEST=10000
 def upsert_edges(conn, edge_type, from_vertex_type, to_vertex_type, edges):
+    print(f"Asked to upsert {len(edges)} {edge_type} edges")
     i = 0 
     while i < len(edges):
         count = conn.upsertEdges(from_vertex_type, edge_type, to_vertex_type, edges[i:i+MAX_EDGE_REQUEST])
@@ -48,7 +53,9 @@ def add_producers(conn, products_with_id, countries_with_id, vomDf):
         (producers_with_id[(v[0], v[1])], 
         # TODO: make truly a percentage by also summing by region
         {'pct_of_national_output': as_fixed_point(v[2]),
-         'market_val_dollars': as_fixed_point(v[2])})
+         'market_val_dollars': as_fixed_point(v[2]),
+         'product_code': v[0],
+         'country_code': v[1]})
           for v in vom_arr]
     upsert_nodes(conn, PRODUCER_VERTEX, producer_nodes)
     
@@ -67,6 +74,65 @@ def add_producers(conn, products_with_id, countries_with_id, vomDf):
     upsert_edges(conn, PRODUCTION_EDGE, PRODUCER_VERTEX, PRODUCT_VERTEX, production_edges)
     return producers_with_id
 
+def add_importers(conn, producers_with_id, vims_df):
+    vims_import_arr = vims_df[['TRAD_COMM', 'REG_2']].drop_duplicates().to_numpy()
+    # Only count the commod and importing reg as the key    
+    importers_with_id = {(vims_import_arr[i][0], vims_import_arr[i][1]): i for i in range(len(vims_import_arr))}
+    importer_nodes = [
+        (importers_with_id[(v[0], v[1])], 
+        # TODO: make truly a percentage by also summing by region
+        {'product_code': v[0],
+         'country_code': v[1]})
+          for v in vims_import_arr]
+    upsert_nodes(conn, IMPORTER_VERTEX, importer_nodes)
+    
+    filt_vims = vims_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
+    print('Filtered VIMS:', filt_vims.shape)
+    vims_arr = filt_vims.to_numpy().tolist()
+    trade_edges = [
+        (producers_with_id[(v[0], v[1])],
+        importers_with_id[(v[0], v[2])],
+        # TODO: figure out the actual pctages
+        {'pct_of_imported_product_total': as_fixed_point(v[3]),
+         'pct_of_producer_output': as_fixed_point(v[3])})
+        for v in vims_arr
+    ]
+    upsert_edges(conn, TRADE_EDGE, PRODUCER_VERTEX, IMPORTER_VERTEX, trade_edges)
+
+    return importers_with_id
+
+def add_producers(conn, products_with_id, countries_with_id, vomDf):
+    # filtVomDf = vomDf.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
+    filtVomDf = vomDf
+    print('Filtered VOM:', filtVomDf.shape)
+
+    vom_arr = filtVomDf.to_numpy().tolist()
+    # Only count the commod and reg as the key
+    producers_with_id = {(vom_arr[i][0], vom_arr[i][1]): i for i in range(len(vom_arr))}
+    producer_nodes = [
+        (producers_with_id[(v[0], v[1])], 
+        # TODO: make truly a percentage by also summing by region
+        {'pct_of_national_output': as_fixed_point(v[2]),
+         'market_val_dollars': as_fixed_point(v[2]),
+         'product_code': v[0],
+         'country_code': v[1]})
+          for v in vom_arr]
+    upsert_nodes(conn, PRODUCER_VERTEX, producer_nodes)
+    
+    loc_edges = [
+        (producers_with_id[(v[0], v[1])],
+         countries_with_id[v[1]],
+         {})
+        for v in vom_arr]
+    upsert_edges(conn, LOCATION_EDGE, PRODUCER_VERTEX, COUNTRY_VERTEX, loc_edges)
+
+    production_edges = [
+        (producers_with_id[(v[0], v[1])],
+         products_with_id[v[0]],
+         {})
+        for v in vom_arr]
+    upsert_edges(conn, PRODUCTION_EDGE, PRODUCER_VERTEX, PRODUCT_VERTEX, production_edges)
+    return producers_with_id
 
 def add_nodes(conn, vomDf):
     products_with_id = items_with_ids('NSAV_COMM', vomDf)
@@ -79,7 +145,7 @@ def add_nodes(conn, vomDf):
 
     return {'countries': countries_with_id, 'products': products_with_id, 'producers': producers_with_id}
 
-def add_product_input_edges(conn, node_id_dict, vdfm_df):
+def add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df):
     filt_vdfm_df = vdfm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
     print('Filtered VDFM:', filt_vdfm_df.shape)
 
@@ -98,6 +164,20 @@ def add_product_input_edges(conn, node_id_dict, vdfm_df):
         for v in vdfm_arr
     ]
     upsert_edges(conn, DOMESTIC_INPUT_EDGE, PRODUCER_VERTEX, PRODUCER_VERTEX, edges)
+
+    filt_vifm_df = vifm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
+    print('Filtered VIFM:', filt_vifm_df.shape)
+    vifm_arr = filt_vifm_df.to_numpy().tolist()
+    importers_with_id = node_id_dict['importers']
+    edges = [
+        (importers_with_id[(v[0], v[2])],
+         producers_with_id[(v[1], v[2])],
+         # TODO: make these actually be correct percentages
+         {'pct_of_producer_input': as_fixed_point(v[3]),
+          'pct_of_importer_output': as_fixed_point(v[3])})
+        for v in vifm_arr
+    ]
+    upsert_edges(conn, IMPORTED_INPUT_EDGE, IMPORTER_VERTEX, PRODUCER_VERTEX, edges)
     
 
 def initDbForWriting(config, graphname):
@@ -122,22 +202,33 @@ def recreate_schema(drop_all, config):
         print(conn.gsql('DROP ALL', options=[]))
         print(conn.gsql('ls', options=[]))
     
-    # Schema rationale - don't bother storing names etc in the DB, pretty easy to
+    # Schema rationale:
+    #
+    # 1. don't bother storing names etc in the DB, pretty easy to
     # just hard code these in clients rather than faff around ensuring they're present
+    # 
+    # 2. don't link importers to countries & products for now - they seem more like an
+    # intermediate edge than of interest in their own right
+
     print(conn.gsql(f'''
 create vertex {COUNTRY_VERTEX} (primary_id country_id UINT, code STRING)
 
 create vertex {PRODUCT_VERTEX} (primary_id sector_id UINT, code STRING)
 
-create vertex {PRODUCER_VERTEX} (primary_id producer_id UINT, pct_of_national_output UINT, market_val_dollars UINT)
+create vertex {IMPORTER_VERTEX} (primary_id importer_id UINT, country_code STRING, product_code STRING, code STRING)
+
+create vertex {PRODUCER_VERTEX} (primary_id producer_id UINT, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT)
 
 create undirected edge {LOCATION_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
 create undirected edge {PRODUCTION_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCT_VERTEX})
 
 create directed edge {DOMESTIC_INPUT_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_producer_output INT)
-                      
 
-create graph {UNFILTERED_GRAPH} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE})
+create directed edge {IMPORTED_INPUT_EDGE} (from {IMPORTER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_importer_output INT)
+
+create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX}, pct_of_imported_product_total INT, pct_of_producer_output INT)
+
+create graph {UNFILTERED_GRAPH} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE})
 ''', options=[]))
     if drop_all:
         print('Now that drop all has been run you will need to create a secret and then add it to cfg.py to be able to do further operations (don\'t run with --drop-all again unless you want to repeat these steps!)')
@@ -153,12 +244,16 @@ def check_args():
         raise SystemExit(f"Usage: {sys.argv[0]} [--regen-schema]...")
     return {KNOWN_OPTS[k]:k in opts for k in KNOWN_OPTS}
 
-def main(config, vom_path, vdfm_path):
+def main(config, paths):
     conn = initDbForWriting(config, UNFILTERED_GRAPH)
-    vom_df = pd.read_pickle(vom_path)
+    vom_df = pd.read_pickle(paths['VOM'])
     node_id_dict = add_nodes(conn, vom_df)
-    vdfm_df = pd.read_pickle(vdfm_path)
-    add_product_input_edges(conn, node_id_dict, vdfm_df)
+    vims_df = pd.read_pickle(paths['VIMS'])
+    node_id_dict['importers'] = add_importers(conn, node_id_dict['producers'], vims_df)
+    vdfm_df = pd.read_pickle(paths['VDFM'])
+    vifm_df = pd.read_pickle(paths['VIFM'])
+    add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df)
+    
     print(conn.getVertexStats('*'))
     print(conn.getEdgeStats('*'))
 
@@ -170,4 +265,12 @@ if __name__ == "__main__":
         recreate_schema(args['drop-all'], cfg)
     else:
         base_path = '/Users/byron/projects/hackathon/tg-graphforall/GTAP-initial/extracted/fully-disagg'
-        main(cfg, f'{base_path}-BaseView-VOM.pkl.bz2', f'{base_path}-BaseData-VDFM.pkl.bz2')
+        paths = {
+            'VOM': f'{base_path}-BaseView-VOM.pkl.bz2',
+            'VIMS': f'{base_path}-BaseData-VIMS.pkl.bz2',
+            'VDFM': f'{base_path}-BaseData-VDFM.pkl.bz2',
+            'VIFM': f'{base_path}-BaseData-VIFM.pkl.bz2'}
+        try:
+            main(cfg, paths)
+        except BaseException as err:
+            print(f"Unexpected issue {err} ({type(err)})")

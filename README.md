@@ -3,6 +3,7 @@
 * Add a TODO on the client bit and tie back here
 * Tidy up any python / JS that may now be defunct
 * Ensure any dataframes etc required to run the code are in this repo (i.e. no paths to projects or other repos files in code..)
+* Ensure any queries that have been loaded to graphDB are loadable fresh from code
 
 ## About
 

@@ -82,7 +82,7 @@ def add_importers(conn, producers_with_id, vxmd_df, vom_df):
     trade_edges = [
         (producers_with_id[(v[0], v[1])],
         importers_with_id[(v[0], v[2])],
-        {'nominal_exported_value': as_fixed_point(v[3]),
+        {'market_val_dollars': as_fixed_point(v[3]),
          'pct_of_imported_product_total': as_percent_fixed_point(v[4]),
          'pct_of_producer_output': as_percent_fixed_point(v[5])})
         for v in vxmd_arr
@@ -140,36 +140,55 @@ def add_nodes(conn, vom_df):
 
     return {'countries': countries_with_id, 'products': products_with_id, 'producers': producers_with_id}
 
-def add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df):
+def add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df, vom_df):
     filt_vdfm_df = vdfm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
     print('Filtered VDFM:', filt_vdfm_df.shape)
 
     producers_with_id = node_id_dict['producers']
-    
+
+    product_input_sum = vdfm_df.groupby(['PROD_COMM', 'REG']).sum()
+    with_sums = pd.merge(filt_vdfm_df, product_input_sum.rename(columns={'Value': 'sum-PROD_COMM-REG'}), on=['PROD_COMM', 'REG'])
+    with_sums['pct_of_producer_input'] = with_sums['Value'] / with_sums['sum-PROD_COMM-REG']
+    with_sums = pd.merge(with_sums, vom_df.rename(columns={'NSAV_COMM': 'TRAD_COMM', 'Value': 'sum-TRAD_COMM-REG'}), on=['REG', 'TRAD_COMM'])
+    with_sums['pct_of_producer_output'] = with_sums['Value'] / with_sums['sum-TRAD_COMM-REG']
+
+    check_bad_percentages(with_sums, 'pct_of_producer_input')
+    check_bad_percentages(with_sums, 'pct_of_producer_output')
+
     # Should be TRADed_COMM, PRODuced_COMM, REG, Value
-    vdfm_arr = filt_vdfm_df.to_numpy().tolist()
+    vdfm_arr = with_sums[
+        ['TRAD_COMM', 'PROD_COMM', 'REG', 'Value', 'pct_of_producer_input', 'pct_of_producer_output']].to_numpy().tolist()
+
     # Direct the edge from the output producer to the
     # producer who has that as an input
     edges = [
         (producers_with_id[(v[0], v[2])],
          producers_with_id[(v[1], v[2])],
-         # TODO: make these actually be correct percentages
-         {'pct_of_producer_input': as_fixed_point(v[3]),
-          'pct_of_producer_output': as_fixed_point(v[3])})
+         {'market_val_dollars': as_fixed_point(v[3]),
+          'pct_of_producer_input': as_percent_fixed_point(v[4]),
+          'pct_of_producer_output': as_percent_fixed_point(v[5])})
         for v in vdfm_arr
     ]
     upsert_edges(conn, DOMESTIC_INPUT_EDGE, PRODUCER_VERTEX, PRODUCER_VERTEX, edges)
 
     filt_vifm_df = vifm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
     print('Filtered VIFM:', filt_vifm_df.shape)
-    vifm_arr = filt_vifm_df.to_numpy().tolist()
+
+    product_input_sum = vifm_df.groupby(['PROD_COMM', 'REG']).sum()
+    i_with_sums = pd.merge(filt_vifm_df, product_input_sum.rename(columns={'Value': 'sum-PROD_COMM-REG'}), on=['PROD_COMM', 'REG'])
+    i_with_sums['pct_of_producer_input'] = i_with_sums['Value'] / i_with_sums['sum-PROD_COMM-REG']
+    # Not going to bother with the percent of importing
+
+    vifm_arr = i_with_sums[
+        ['TRAD_COMM', 'PROD_COMM', 'REG', 'Value', 'pct_of_producer_input']
+    ].to_numpy().tolist()
     importers_with_id = node_id_dict['importers']
     edges = [
         (importers_with_id[(v[0], v[2])],
          producers_with_id[(v[1], v[2])],
          # TODO: make these actually be correct percentages
-         {'pct_of_producer_input': as_fixed_point(v[3]),
-          'pct_of_importer_output': as_fixed_point(v[3])})
+         {'market_val_dollars': as_fixed_point(v[3]),
+             'pct_of_producer_input': as_percent_fixed_point(v[4])})
         for v in vifm_arr
     ]
     upsert_edges(conn, IMPORTED_INPUT_EDGE, IMPORTER_VERTEX, PRODUCER_VERTEX, edges)
@@ -213,11 +232,11 @@ create vertex {PRODUCER_VERTEX} (primary_id producer_id UINT, country_code STRIN
 create undirected edge {LOCATION_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
 create undirected edge {PRODUCTION_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCT_VERTEX})
 
-create directed edge {DOMESTIC_INPUT_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_producer_output INT)
+create directed edge {DOMESTIC_INPUT_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, market_val_dollars INT, pct_of_producer_input INT, pct_of_producer_output INT)
 
-create directed edge {IMPORTED_INPUT_EDGE} (from {IMPORTER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_importer_output INT)
+create directed edge {IMPORTED_INPUT_EDGE} (from {IMPORTER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, market_val_dollars INT)
 
-create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX}, nominal_exported_value INT, pct_of_imported_product_total INT, pct_of_producer_output INT)
+create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX}, market_val_dollars INT, pct_of_imported_product_total INT, pct_of_producer_output INT)
 
 create graph {UNFILTERED_GRAPH} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE})
 ''', options=[]))
@@ -248,7 +267,7 @@ def main(config, paths):
     node_id_dict['importers'] = add_importers(conn, node_id_dict['producers'], vxmd_df, vom_df)
     vdfm_df = pd.read_pickle(paths['VDFM'])
     vifm_df = pd.read_pickle(paths['VIFM'])
-    add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df)
+    add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df, vom_df)
     
     print(conn.getVertexStats('*'))
     print(conn.getEdgeStats('*'))

@@ -44,6 +44,13 @@ def as_fixed_point(v):
 def as_percent_fixed_point(v):
     return as_fixed_point(v * 100.0)
 
+def check_bad_percentages(df, col_name):
+    bad_vals = df.query(f'{col_name} > 1.0')
+    if bad_vals.shape[0] > 0:
+        print('Bad rows...')
+        print(bad_vals)
+        raise Exception("Got bad rows")
+
 MIN_OUTPUT_M_DOLLARS=1
 def add_importers(conn, producers_with_id, vxmd_df, vom_df):
     vims_import_arr = vxmd_df[['TRAD_COMM', 'REG_2']].drop_duplicates().to_numpy()
@@ -66,10 +73,8 @@ def add_importers(conn, producers_with_id, vxmd_df, vom_df):
     with_sums = pd.merge(with_sums, vom_df.rename(columns={'NSAV_COMM': 'TRAD_COMM', 'Value': 'sum-TRAD_COMM-REG'}), on=['REG', 'TRAD_COMM'])
     with_sums['pct_of_product_output_total'] = with_sums['Value'] / with_sums['sum-TRAD_COMM-REG']
 
-    if with_sums.query('pct_of_imported_product_total > 1.0 | pct_of_product_output_total > 1.0').shape[0] > 0:
-        print('Bad rows...')
-        print(with_sums.query('pct_of_imported_product_total > 1.0 | pct_of_product_output_total > 1.0'))
-        raise Exception("Got bad rows")
+    check_bad_percentages(with_sums, 'pct_of_imported_product_total')
+    check_bad_percentages(with_sums, 'pct_of_product_output_total')
 
     vxmd_arr = with_sums[
         ['TRAD_COMM', 'REG', 'REG_2', 'Value', 'pct_of_imported_product_total', 'pct_of_product_output_total']].to_numpy().tolist()
@@ -87,18 +92,22 @@ def add_importers(conn, producers_with_id, vxmd_df, vom_df):
 
     return importers_with_id
 
-def add_producers(conn, products_with_id, countries_with_id, vomDf):
-    # filtVomDf = vomDf.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
-    filtVomDf = vomDf
-    print('Filtered VOM:', filtVomDf.shape)
+def add_producers(conn, products_with_id, countries_with_id, vom_df):
+    # filt_vom_df = vom_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
+    filt_vom_df = vom_df
+    print('Filtered VOM:', filt_vom_df.shape)
 
-    vom_arr = filtVomDf.to_numpy().tolist()
+    country_sum = vom_df.groupby(['REG']).sum()
+    with_sums = pd.merge(filt_vom_df, country_sum.rename(columns={'Value': 'sum-REG'}), on=['REG'])
+    with_sums['pct_of_national_output'] = with_sums['Value'] / with_sums['sum-REG']
+    check_bad_percentages(with_sums, 'pct_of_national_output')
+
+    vom_arr = with_sums[['NSAV_COMM', 'REG', 'Value', 'pct_of_national_output']].to_numpy().tolist()
     # Only count the commod and reg as the key
     producers_with_id = {(vom_arr[i][0], vom_arr[i][1]): i for i in range(len(vom_arr))}
     producer_nodes = [
         (producers_with_id[(v[0], v[1])], 
-        # TODO: make truly a percentage by also summing by region
-        {'pct_of_national_output': as_fixed_point(v[2]),
+        {'pct_of_national_output': as_percent_fixed_point(v[3]),
          'market_val_dollars': as_fixed_point(v[2]),
          'product_code': v[0],
          'country_code': v[1]})
@@ -120,14 +129,14 @@ def add_producers(conn, products_with_id, countries_with_id, vomDf):
     upsert_edges(conn, PRODUCTION_EDGE, PRODUCER_VERTEX, PRODUCT_VERTEX, production_edges)
     return producers_with_id
 
-def add_nodes(conn, vomDf):
-    products_with_id = items_with_ids('NSAV_COMM', vomDf)
+def add_nodes(conn, vom_df):
+    products_with_id = items_with_ids('NSAV_COMM', vom_df)
     add_nodes_by_code(conn, PRODUCT_VERTEX, products_with_id)
 
-    countries_with_id = items_with_ids('REG', vomDf)
+    countries_with_id = items_with_ids('REG', vom_df)
     add_nodes_by_code(conn, COUNTRY_VERTEX, countries_with_id)
 
-    producers_with_id = add_producers(conn, products_with_id, countries_with_id, vomDf)
+    producers_with_id = add_producers(conn, products_with_id, countries_with_id, vom_df)
 
     return {'countries': countries_with_id, 'products': products_with_id, 'producers': producers_with_id}
 

@@ -96,6 +96,7 @@ def add_importers(conn, producers_with_id, vims_df):
         {'pct_of_imported_product_total': as_fixed_point(v[3]),
          'pct_of_producer_output': as_fixed_point(v[3])})
         for v in vims_arr
+        if v[1] != v[2]
     ]
     upsert_edges(conn, TRADE_EDGE, PRODUCER_VERTEX, IMPORTER_VERTEX, trade_edges)
 
@@ -244,8 +245,13 @@ def check_args():
         raise SystemExit(f"Usage: {sys.argv[0]} [--regen-schema]...")
     return {KNOWN_OPTS[k]:k in opts for k in KNOWN_OPTS}
 
+def clear_old_data(conn):
+    print('Attempting to clear old data...')
+    print(conn.runInstalledQuery('delete_all'))
+
 def main(config, paths):
     conn = initDbForWriting(config, UNFILTERED_GRAPH)
+    clear_old_data(conn)
     vom_df = pd.read_pickle(paths['VOM'])
     node_id_dict = add_nodes(conn, vom_df)
     vims_df = pd.read_pickle(paths['VIMS'])

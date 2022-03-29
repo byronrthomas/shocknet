@@ -42,38 +42,6 @@ def as_fixed_point(v):
     return int(v * 10000)
 
 MIN_OUTPUT_M_DOLLARS=1
-def add_producers(conn, products_with_id, countries_with_id, vomDf):
-    filtVomDf = vomDf.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
-    print('Filtered VOM:', filtVomDf.shape)
-
-    vom_arr = filtVomDf.to_numpy().tolist()
-    # Only count the commod and reg as the key
-    producers_with_id = {(vom_arr[i][0], vom_arr[i][1]): i for i in range(len(vom_arr))}
-    producer_nodes = [
-        (producers_with_id[(v[0], v[1])], 
-        # TODO: make truly a percentage by also summing by region
-        {'pct_of_national_output': as_fixed_point(v[2]),
-         'market_val_dollars': as_fixed_point(v[2]),
-         'product_code': v[0],
-         'country_code': v[1]})
-          for v in vom_arr]
-    upsert_nodes(conn, PRODUCER_VERTEX, producer_nodes)
-    
-    loc_edges = [
-        (producers_with_id[(v[0], v[1])],
-         countries_with_id[v[1]],
-         {})
-        for v in vom_arr]
-    upsert_edges(conn, LOCATION_EDGE, PRODUCER_VERTEX, COUNTRY_VERTEX, loc_edges)
-
-    production_edges = [
-        (producers_with_id[(v[0], v[1])],
-         products_with_id[v[0]],
-         {})
-        for v in vom_arr]
-    upsert_edges(conn, PRODUCTION_EDGE, PRODUCER_VERTEX, PRODUCT_VERTEX, production_edges)
-    return producers_with_id
-
 def add_importers(conn, producers_with_id, vims_df):
     vims_import_arr = vims_df[['TRAD_COMM', 'REG_2']].drop_duplicates().to_numpy()
     # Only count the commod and importing reg as the key    
@@ -191,10 +159,6 @@ def initDbForWriting(config, graphname):
 ## Let's say 4 decimals - with percentages expressed as 10.5% rather than 0.105
 
 
-## TODO: this doesn't have any of the concepts around imports, even with bilateral
-## you need country-exported-good node and an edge from producer to 
-## country-exported-good and a
-## country-imported-good node with an edge from there to producer
 def recreate_schema(drop_all, config):
     conn = tg.TigerGraphConnection(host=config['HOSTNAME'], username=config['USERNAME'], password=config['PASSWORD'])
     print(conn.gsql('ls', options=[]))

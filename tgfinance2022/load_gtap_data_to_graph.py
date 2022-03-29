@@ -41,29 +41,46 @@ def add_nodes_by_code(conn, vertex_type, item_id_dict):
 def as_fixed_point(v):
     return int(v * 10000)
 
+def as_percent_fixed_point(v):
+    return as_fixed_point(v * 100.0)
+
 MIN_OUTPUT_M_DOLLARS=1
-def add_importers(conn, producers_with_id, vims_df):
-    vims_import_arr = vims_df[['TRAD_COMM', 'REG_2']].drop_duplicates().to_numpy()
+def add_importers(conn, producers_with_id, vxmd_df, vom_df):
+    vims_import_arr = vxmd_df[['TRAD_COMM', 'REG_2']].drop_duplicates().to_numpy()
     # Only count the commod and importing reg as the key    
     importers_with_id = {(vims_import_arr[i][0], vims_import_arr[i][1]): i for i in range(len(vims_import_arr))}
     importer_nodes = [
         (importers_with_id[(v[0], v[1])], 
-        # TODO: make truly a percentage by also summing by region
+        # Assumption - importers by themselves aren't of interest for filtering
+        # (can use traded percentages and percentage of input that's imported instead)
         {'product_code': v[0],
          'country_code': v[1]})
           for v in vims_import_arr]
     upsert_nodes(conn, IMPORTER_VERTEX, importer_nodes)
     
-    filt_vims = vims_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
-    print('Filtered VIMS:', filt_vims.shape)
-    vims_arr = filt_vims.to_numpy().tolist()
+    filt_vxmd = vxmd_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
+    print('Filtered VXMD:', filt_vxmd.shape)
+    imp_product_sum = vxmd_df.groupby(['TRAD_COMM', 'REG_2']).sum()
+    with_sums = pd.merge(filt_vxmd, imp_product_sum.rename(columns={'Value': 'sum-TRAD_COMM-REG2'}), on=['TRAD_COMM', 'REG_2'])
+    with_sums['pct_of_imported_product_total'] = with_sums['Value'] / with_sums['sum-TRAD_COMM-REG2']
+    with_sums = pd.merge(with_sums, vom_df.rename(columns={'NSAV_COMM': 'TRAD_COMM', 'Value': 'sum-TRAD_COMM-REG'}), on=['REG', 'TRAD_COMM'])
+    with_sums['pct_of_product_output_total'] = with_sums['Value'] / with_sums['sum-TRAD_COMM-REG']
+
+    if with_sums.query('pct_of_imported_product_total > 1.0 | pct_of_product_output_total > 1.0').shape[0] > 0:
+        print('Bad rows...')
+        print(with_sums.query('pct_of_imported_product_total > 1.0 | pct_of_product_output_total > 1.0'))
+        raise Exception("Got bad rows")
+
+    vxmd_arr = with_sums[
+        ['TRAD_COMM', 'REG', 'REG_2', 'Value', 'pct_of_imported_product_total', 'pct_of_product_output_total']].to_numpy().tolist()
+    
     trade_edges = [
         (producers_with_id[(v[0], v[1])],
         importers_with_id[(v[0], v[2])],
-        # TODO: figure out the actual pctages
-        {'pct_of_imported_product_total': as_fixed_point(v[3]),
-         'pct_of_producer_output': as_fixed_point(v[3])})
-        for v in vims_arr
+        {'nominal_exported_value': as_fixed_point(v[3]),
+         'pct_of_imported_product_total': as_percent_fixed_point(v[4]),
+         'pct_of_producer_output': as_percent_fixed_point(v[5])})
+        for v in vxmd_arr
         if v[1] != v[2]
     ]
     upsert_edges(conn, TRADE_EDGE, PRODUCER_VERTEX, IMPORTER_VERTEX, trade_edges)
@@ -191,7 +208,7 @@ create directed edge {DOMESTIC_INPUT_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER
 
 create directed edge {IMPORTED_INPUT_EDGE} (from {IMPORTER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_importer_output INT)
 
-create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX}, pct_of_imported_product_total INT, pct_of_producer_output INT)
+create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX}, nominal_exported_value INT, pct_of_imported_product_total INT, pct_of_producer_output INT)
 
 create graph {UNFILTERED_GRAPH} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE})
 ''', options=[]))
@@ -218,8 +235,8 @@ def main(config, paths):
     clear_old_data(conn)
     vom_df = pd.read_pickle(paths['VOM'])
     node_id_dict = add_nodes(conn, vom_df)
-    vims_df = pd.read_pickle(paths['VIMS'])
-    node_id_dict['importers'] = add_importers(conn, node_id_dict['producers'], vims_df)
+    vxmd_df = pd.read_pickle(paths['VXMD'])
+    node_id_dict['importers'] = add_importers(conn, node_id_dict['producers'], vxmd_df, vom_df)
     vdfm_df = pd.read_pickle(paths['VDFM'])
     vifm_df = pd.read_pickle(paths['VIFM'])
     add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df)
@@ -237,7 +254,7 @@ if __name__ == "__main__":
         base_path = '/Users/byron/projects/hackathon/tg-graphforall/GTAP-initial/extracted/fully-disagg'
         paths = {
             'VOM': f'{base_path}-BaseView-VOM.pkl.bz2',
-            'VIMS': f'{base_path}-BaseData-VIMS.pkl.bz2',
+            'VXMD': f'{base_path}-BaseData-VXMD.pkl.bz2',
             'VDFM': f'{base_path}-BaseData-VDFM.pkl.bz2',
             'VIFM': f'{base_path}-BaseData-VIFM.pkl.bz2'}
         try:

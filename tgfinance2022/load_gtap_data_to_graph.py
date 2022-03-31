@@ -1,3 +1,5 @@
+import json
+import string
 import pandas as pd
 import pyTigerGraph as tg
 import sys
@@ -243,22 +245,29 @@ create graph {UNFILTERED_GRAPH} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_V
     if drop_all:
         print('Now that drop all has been run you will need to create a secret and then add it to cfg.py to be able to do further operations (don\'t run with --drop-all again unless you want to repeat these steps!)')
 
+
+
 def check_args():
     opts = [opt for opt in sys.argv[1:] if opt.startswith("-")]
     args = [arg for arg in sys.argv[1:] if not arg.startswith("-")]
 
-    KNOWN_OPTS = {'--regen-schema': 'regen-schema', '--drop-all': 'drop-all'}
+    KNOWN_OPTS = {'--regen-schema': 'regen-schema', '--drop-all': 'drop-all', '--write-data': 'write-data'}
     rejected = args
     rejected.extend([r for r in opts if r not in KNOWN_OPTS])
     if len(rejected):
         raise SystemExit(f"Usage: {sys.argv[0]} [--regen-schema]...")
     return {KNOWN_OPTS[k]:k in opts for k in KNOWN_OPTS}
 
+def read_resource(path):
+    with open(path) as rdr:
+        return rdr.read()
+
 def clear_old_data(conn):
     print('Attempting to clear old data...')
-    print(conn.runInstalledQuery('delete_all'))
+    #print(conn.runInstalledQuery('delete_all'))
+    print(conn.runInterpretedQuery(read_resource('resources/gsql_queries/delete_all.gsql')))
 
-def main(config, paths):
+def write_data(config, paths):
     conn = initDbForWriting(config, UNFILTERED_GRAPH)
     clear_old_data(conn)
     vom_df = pd.read_pickle(paths['VOM'])
@@ -272,20 +281,54 @@ def main(config, paths):
     print(conn.getVertexStats('*'))
     print(conn.getEdgeStats('*'))
 
-if __name__ == "__main__":
-    args = check_args()
-    # print(check_args)
+def to_json_file(path, obj):
+    with open(path, 'w') as wri:
+       json.dump(obj, wri, indent=2)
+
+
+def run_query(config, cut_producer_ids, input_thresh, import_thresh):
+    conn = initDbForWriting(config, UNFILTERED_GRAPH)
+    cut_params = [
+        f'cuts[{i}]={p_id}&cuts[{i}].type=producer'
+        for i, p_id in enumerate(cut_producer_ids)]
+    cut_params = '&'.join(cut_params)
+    params = f'{cut_params}&input_pct_thresh={as_percent_fixed_point(input_thresh)}&import_pct_thresh={as_percent_fixed_point(import_thresh)}'
+    print('DEBUG - running with params string = ', params)
+    res = conn.runInterpretedQuery(read_resource('resources/gsql_queries/supply_cut_with_thresh.gsql'), params)
+    links = res[0]['@@links']
+    print(f'Found {len(links)} affected producers')
+    to_json_file('links.json', links)
+    affected_countries = {ln['to_country'] for ln in links}
+    print(f'All affected countries ({len(affected_countries)})...')
+    print(affected_countries)
+
+    
+    
+
+def main(args):
     cfg = dotenv_values('.env')
     if args['regen-schema']:
         recreate_schema(args['drop-all'], cfg)
-    else:
+    elif args['write-data']:
         base_path = '/Users/byron/projects/hackathon/tg-graphforall/GTAP-initial/extracted/fully-disagg'
         paths = {
             'VOM': f'{base_path}-BaseView-VOM.pkl.bz2',
             'VXMD': f'{base_path}-BaseData-VXMD.pkl.bz2',
             'VDFM': f'{base_path}-BaseData-VDFM.pkl.bz2',
             'VIFM': f'{base_path}-BaseData-VIFM.pkl.bz2'}
-        try:
-            main(cfg, paths)
-        except BaseException as err:
-            print(f"Unexpected issue {err} ({type(err)})")
+        write_data(cfg, paths)
+    else:
+        # MEX oil & USA oil - covers most of the world!
+        # run_query(cfg, [1721, 1658], 0.25, 0.1)
+
+        # LAOtian PCR (processed rice) - shouldn't go too far?
+        run_query(cfg, [783], 0.25, 0.01)
+
+if __name__ == "__main__":
+    args = check_args()
+    try:
+        main(args)
+    except BaseException as err:
+        print(f"Unexpected issue {err} ({type(err)})")
+    # print(check_args)
+    

@@ -1,0 +1,12 @@
+INTERPRET QUERY delete_all(/* Parameters here */) FOR GRAPH ecomonic_links_unfiltered { 
+  S = {producer.*};
+  DELETE s FROM S:s;
+  I = {importer.*};
+  DELETE i FROM I:i;
+  P = {product.*};
+  DELETE p FROM P:p;
+  C = {country.*};
+  DELETE c FROM C:c;
+  
+  PRINT "delete_all works!"; 
+}

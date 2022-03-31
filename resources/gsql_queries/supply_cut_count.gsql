@@ -1,0 +1,32 @@
+INTERPRET QUERY supply_cut_count(SET<VERTEX <producer>> cuts) FOR GRAPH ecomonic_links_unfiltered { 
+  TYPEDEF TUPLE<string from_country, string from_product, string edge_type, string to_country, string to_product> linkRecord;
+  TYPEDEF TUPLE<VERTEX from_p, VERTEX to_p> link;
+  ListAccum<linkRecord>    @@links;
+  OrAccum<BOOL> @visited;
+
+  
+  // Cheatsheet - 1721 is MX oil as of 30th March load, 1658 is US oil
+  
+  to_visit = cuts;
+  // NOTE: when we actually start filtering by pctages etc then we will need to have where
+  // clauses about the edges, so we'll have to do this by multi-pass iteration instead
+  while(to_visit.size() > 0) DO
+    res = SELECT t FROM to_visit:t ACCUM t.@visited += TRUE;
+  
+    dom_producers = SELECT p
+      FROM to_visit:c -(uses_domestic_input>)- producer:p
+      // WHERE c.@visited == FALSE
+      WHERE p.@visited == FALSE
+      ACCUM @@links += linkRecord(c.country_code, c.product_code, "domestic_input", p.country_code, p.product_code);
+  
+    intl_producers = SELECT p
+      FROM to_visit:c -(trades>:e1)- importer:i -(uses_imported_input>:e2)- producer:p
+      WHERE p.@visited == FALSE
+      ACCUM @@links += linkRecord(c.country_code, c.product_code, "traded_input", p.country_code, p.product_code);
+  
+  
+    to_visit = dom_producers UNION intl_producers;
+  END;
+  
+  PRINT @@links.size();
+}

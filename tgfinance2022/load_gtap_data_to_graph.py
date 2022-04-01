@@ -310,12 +310,32 @@ def run_query(config, cut_producer_ids, input_thresh, import_thresh):
     print(f'All affected countries ({len(affected_countries)})...')
     print(affected_countries)
 
+def run_affected_countries_query(config, cut_producer_ids):
+    conn = initDbForWriting(config, UNFILTERED_GRAPH)
+    cut_params = [
+        f'starting_nodes[{i}]={p_id}&starting_nodes[{i}].type=producer'
+        for i, p_id in enumerate(cut_producer_ids)]
+    cut_params = '&'.join(cut_params)
+    params = f'{cut_params}&allowed_edge_types={CRITICAL_INDUSTRY_EDGE}&allowed_edge_types={TRADE_SHOCK_EDGE}&allowed_edge_types={PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={COUNTRY_VERTEX}&allowed_vertex_types={PRODUCER_VERTEX}&final_vertex_types={COUNTRY_VERTEX}&report_links=TRUE'
+    print('DEBUG - running with params string = ', params)
+    res = conn.runInterpretedQuery(read_resource('resources/gsql_queries/bfs_reachability.gsql'), params)
+    reachable_countries = res[0]['res']
+    to_json_file('reachable_countries.json', reachable_countries)
+    print(f'res size = {len(res)}, res[0].keys = {res[0].keys()}')
+    reachable_links = res[1]['@@allEdges']
+    to_json_file('reachable_links.json', reachable_links)
+    affected_countries = {c['attributes']['code'] for c in reachable_countries}
+    print(f'All affected countries ({len(affected_countries)})...')
+    print(affected_countries)
+
 def condition_graph(config, input_thresh, import_thresh, critical_ind_thresh):
     conn = initDbForWriting(config, UNFILTERED_GRAPH)
     params = f'input_pct_thresh={as_percent_fixed_point(input_thresh)}&import_pct_thresh={as_percent_fixed_point(import_thresh)}&national_output_thresh={as_percent_fixed_point(critical_ind_thresh)}'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(read_resource('resources/gsql_queries/condition_graph.gsql'), params)
     print(res)
+
+
     
 
 def main(args):
@@ -336,7 +356,16 @@ def main(args):
 
         # LAOtian PCR (processed rice) - shouldn't go too far?
         # run_query(cfg, [783], 0.25, 0.01)
-        condition_graph(cfg, 0.25, 0.1, 0.05)
+        # condition_graph(cfg, 0.25, 0.1, 0.05)
+        run_affected_countries_query(cfg, [1721, 1658])
+
+# TODO: check the differences between the two versions make sense
+# Some time after that, we need to basically have some kind of webserver that has a
+#   Post new condition
+#   Get current condition (when I add a conditioning node, change the name of graph too)
+#   Based on condition do reachability
+#   Based on condition check paths
+#     etc..
 
 if __name__ == "__main__":
     args = check_args()

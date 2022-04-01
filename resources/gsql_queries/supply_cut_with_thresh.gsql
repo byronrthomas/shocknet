@@ -1,5 +1,5 @@
 INTERPRET QUERY supply_cut_with_thresh(SET<VERTEX <producer>> cuts, INT input_pct_thresh, INT import_pct_thresh) FOR GRAPH ecomonic_links { 
-  TYPEDEF TUPLE<string from_country, string from_product, string edge_type, string to_country, string to_product> linkRecord;
+  TYPEDEF TUPLE<string from_country, string from_product, string edge_type, string to_country, string to_product, int producer_pct> linkRecord;
   TYPEDEF TUPLE<VERTEX from_p, VERTEX to_p> link;
   ListAccum<linkRecord>    @@links;
   OrAccum<BOOL> @visited;
@@ -17,12 +17,12 @@ INTERPRET QUERY supply_cut_with_thresh(SET<VERTEX <producer>> cuts, INT input_pc
       FROM to_visit:c -(uses_domestic_input>:i)- producer:p
       // WHERE c.@visited == FALSE
       WHERE p.@visited == FALSE AND i.pct_of_producer_input >= input_pct_thresh
-      ACCUM @@links += linkRecord(c.country_code, c.product_code, "domestic_input", p.country_code, p.product_code);
+      ACCUM @@links += linkRecord(c.country_code, c.product_code, "domestic_input", p.country_code, p.product_code, p.pct_of_national_output);
   
     intl_producers = SELECT p
       FROM to_visit:c -(trades>:t)- importer:imp -(uses_imported_input>:i)- producer:p
       WHERE p.@visited == FALSE AND i.pct_of_producer_input >= input_pct_thresh AND t.pct_of_imported_product_total >= import_pct_thresh
-      ACCUM @@links += linkRecord(c.country_code, c.product_code, "traded_input", p.country_code, p.product_code);
+      ACCUM @@links += linkRecord(c.country_code, c.product_code, "traded_input", p.country_code, p.product_code, p.pct_of_national_output);
   
   
     to_visit = dom_producers UNION intl_producers;

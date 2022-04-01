@@ -232,7 +232,7 @@ create vertex {PRODUCER_VERTEX} (primary_id producer_id STRING, country_code STR
 create vertex {CONDITION_VERTEX} (primary_id id UINT, condition_description STRING)
 
 create undirected edge {LOCATION_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
-create undirected edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
+create directed edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
 create undirected edge {PRODUCTION_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCT_VERTEX})
 
 create directed edge {DOMESTIC_INPUT_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, market_val_dollars INT, pct_of_producer_input INT, pct_of_producer_output INT)
@@ -333,8 +333,25 @@ def condition_graph(config, input_thresh, import_thresh, critical_ind_thresh):
     print(res)
     print(conn.getEdgeStats('*'))
 
-
-    
+def links_to_paths(links, starting_points, end_points):
+    start_point_set = set(starting_points)
+    by_path_end = {
+        ln["to_id"]: [[ln]] for ln in links if ln["from_id"] in start_point_set}
+    links = [ln for ln in links if ln["from_id"] not in start_point_set]
+    while len(links) > 0:
+        
+        ext_links = [
+            ln for ln in links if ln["from_id"] in by_path_end
+        ]
+        links = [ln for ln in links if ln["from_id"] not in by_path_end]
+        if len(ext_links) == 0 and len(links) > 0:
+            print('Remaining links', links)
+            raise Exception("Unexpected condition, not finding new paths but links non-empty")
+        
+        for ln in ext_links:
+            by_path_end[ln['to_id']] = [(path + [ln]) for path in by_path_end[ln['from_id']]]
+        
+    return {e_id: by_path_end[e_id] for e_id in end_points}
 
 def main(args):
     cfg = dotenv_values('.env')
@@ -356,8 +373,8 @@ def main(args):
 
         # LAOtian PCR (processed rice) - shouldn't go too far?
         # run_query(cfg, [783], 0.25, 0.01)
-        # condition_graph(cfg, 0.25, 0.1, 0.05)
-        # run_affected_countries_query(cfg, [mex_oil, usa_oil])
+        condition_graph(cfg, 0.25, 0.1, 0.05)
+        run_affected_countries_query(cfg, [mex_oil, usa_oil])
 
 # TODO: check the differences between the two versions make sense
 # Some time after that, we need to basically have some kind of webserver that has a

@@ -4,7 +4,7 @@ INTERPRET QUERY condition_graph(INT input_pct_thresh, INT import_pct_thresh, INT
     ACCUM DELETE(e);
     Result = SELECT p1 FROM producer:p1 -(production_shock>:e)- producer:p2
     ACCUM DELETE(e);
-    Result = SELECT p1 FROM producer:p1 -(critical_industry_of:e)- country:c
+    Result = SELECT p1 FROM producer:p1 -(critical_industry_of>:e)- country:c
     ACCUM DELETE(e);
   
     PRINT "Delete completed";

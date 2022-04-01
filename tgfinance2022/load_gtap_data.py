@@ -221,13 +221,14 @@ def main(args):
             'VIFM': f'{base_path}-BaseData-VIFM.pkl.bz2'}
         write_data(cfg, paths)
     else:
+        conn = initDbWithToken(cfg, GRAPHNAME)
         mex_oil = producer_code(product_code='oil', country_code='mex')
         usa_oil = producer_code(product_code='oil', country_code='usa')
 
         # LAOtian PCR (processed rice) - shouldn't go too far?
         # run_query(cfg, [783], 0.25, 0.01)
-        condition_graph_float_proportions(cfg, 0.25, 0.1, 0.05)
-        run_shocks_query(cfg, [mex_oil, usa_oil])
+        condition_graph_float_proportions(conn, 0.25, 0.1, 0.05)
+        run_shocks_query(conn, [mex_oil, usa_oil])
 
 # TODO: check the differences between the two versions make sense
 # Some time after that, we need to basically have some kind of webserver that has a

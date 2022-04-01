@@ -1,4 +1,4 @@
-INTERPRET QUERY condition_graph(INT input_pct_thresh, INT import_pct_thresh, INT national_output_thresh) FOR GRAPH ecomonic_links { 
+INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, INT national_output_thresh, STRING description) FOR GRAPH ecomonic_links { 
     // Clear edges out before inserting
     Result = SELECT p1 FROM producer:p1 -(trade_shock>:e)- producer:p2
     ACCUM DELETE(e);
@@ -6,6 +6,8 @@ INTERPRET QUERY condition_graph(INT input_pct_thresh, INT import_pct_thresh, INT
     ACCUM DELETE(e);
     Result = SELECT p1 FROM producer:p1 -(critical_industry_of>:e)- country:c
     ACCUM DELETE(e);
+    C2 = {condition_info.*};
+    DELETE c FROM C2:c;
   
     PRINT "Delete completed";
   
@@ -24,5 +26,9 @@ INTERPRET QUERY condition_graph(INT input_pct_thresh, INT import_pct_thresh, INT
       FROM producer:p -(located_in)- country:c
       WHERE p.pct_of_national_output >= national_output_thresh
       ACCUM INSERT INTO critical_industry_of VALUES(p, c);
-  PRINT "Edge insertions finished";
+    PRINT "Edge insertions finished";
+  
+    INSERT INTO condition_info VALUES(1, description);
+  
+    PRINT "Condition info written";
 }

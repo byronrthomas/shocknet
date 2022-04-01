@@ -7,6 +7,8 @@ INTERPRET QUERY delete_all(/* Parameters here */) FOR GRAPH ecomonic_links {
   DELETE p FROM P:p;
   C = {country.*};
   DELETE c FROM C:c;
+  C2 = {condition_info.*};
+  DELETE c FROM C2:c;
   
   PRINT "delete_all works!"; 
 }

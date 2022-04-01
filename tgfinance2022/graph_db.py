@@ -141,6 +141,6 @@ if __name__ == "__main__":
         try:
             recreate_schema(args['drop-all'], make_config())
         except BaseException as err:
-            print(f"Unexpected issue {err} ({type(err)})")
+            print(f"Unexpected issue:\n\t{err} ({type(err)})")
     else:
         raise Exception("Nothing to do!")

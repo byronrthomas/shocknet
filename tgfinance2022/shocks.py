@@ -1,8 +1,20 @@
 import json
 import graph_db as db
 
+def current_condition(conn):
+    res = db.get_condition_info(conn)
+    if res and len(res) > 0:
+        if len(res) > 1:
+            raise Exception(f"Bad condition info -- only expected one result not {len(res)}")
+        return res[0]['condition_description']
+
+def assert_conditioned(conn):
+    res = current_condition(conn)
+    if not res:
+        raise Exception("Not yet projected the graph to a conditioned form - cannot interact with shock info")
 
 def run_affected_countries_query(conn, cut_producer_ids):
+    assert_conditioned(conn)
     cut_params = [
         f'starting_nodes[{i}]={p_id}&starting_nodes[{i}].type=producer'
         for i, p_id in enumerate(cut_producer_ids)]

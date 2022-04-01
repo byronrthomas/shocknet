@@ -16,13 +16,13 @@ PRODUCTION_EDGE='produces'
 TRADE_EDGE='trades'
 DOMESTIC_INPUT_EDGE='uses_domestic_input'
 IMPORTED_INPUT_EDGE='uses_imported_input'
-UNFILTERED_GRAPH='ecomonic_links_unfiltered'
+GRAPHNAME='ecomonic_links'
 PRODUCTION_SHOCK_EDGE='production_shock'
 TRADE_SHOCK_EDGE='trade_shock'
+CONDITION_VERTEX='condition_info'
 
-def items_with_ids(lookup_key, df):
-    vals = df[lookup_key].drop_duplicates().to_list()
-    return {vals[i]: i for i in range(len(vals))}
+def distinct_values_of(lookup_key, df):
+    return df[lookup_key].drop_duplicates().to_list()
 
 def upsert_nodes(conn, vertex_type, nodes):
     print(f"Asked to upsert {len(nodes)} {vertex_type} vertices")
@@ -39,8 +39,8 @@ def upsert_edges(conn, edge_type, from_vertex_type, to_vertex_type, edges):
         i = i + MAX_EDGE_REQUEST
         
 
-def add_nodes_by_code(conn, vertex_type, item_id_dict):
-    nodes = [(v, {'code': k}) for k,v in item_id_dict.items()]
+def add_nodes_with_code(conn, vertex_type, items):
+    nodes = [(v, {'code': v}) for v in items]
     upsert_nodes(conn, vertex_type, nodes)
 
 def as_fixed_point(v):
@@ -56,13 +56,18 @@ def check_bad_percentages(df, col_name):
         print(bad_vals)
         raise Exception("Got bad rows")
 
+def producer_code(product_code, country_code):
+    return f"{country_code}-{product_code}"
+
+def importer_code(country_code, product_code):
+    return f"IMPORTED-TO-{country_code}-{product_code}"
+
 MIN_OUTPUT_M_DOLLARS=1
-def add_importers(conn, producers_with_id, vxmd_df, vom_df):
+def add_importers(conn, vxmd_df, vom_df):
     vims_import_arr = vxmd_df[['TRAD_COMM', 'REG_2']].drop_duplicates().to_numpy()
     # Only count the commod and importing reg as the key    
-    importers_with_id = {(vims_import_arr[i][0], vims_import_arr[i][1]): i for i in range(len(vims_import_arr))}
     importer_nodes = [
-        (importers_with_id[(v[0], v[1])], 
+        (importer_code(product_code=v[0], country_code=v[1]), 
         # Assumption - importers by themselves aren't of interest for filtering
         # (can use traded percentages and percentage of input that's imported instead)
         {'product_code': v[0],
@@ -85,8 +90,8 @@ def add_importers(conn, producers_with_id, vxmd_df, vom_df):
         ['TRAD_COMM', 'REG', 'REG_2', 'Value', 'pct_of_imported_product_total', 'pct_of_product_output_total']].to_numpy().tolist()
     
     trade_edges = [
-        (producers_with_id[(v[0], v[1])],
-        importers_with_id[(v[0], v[2])],
+        (producer_code(product_code=v[0], country_code=v[1]),
+         importer_code(product_code=v[0], country_code=v[2]),
         {'market_val_dollars': as_fixed_point(v[3]),
          'pct_of_imported_product_total': as_percent_fixed_point(v[4]),
          'pct_of_producer_output': as_percent_fixed_point(v[5])})
@@ -95,9 +100,7 @@ def add_importers(conn, producers_with_id, vxmd_df, vom_df):
     ]
     upsert_edges(conn, TRADE_EDGE, PRODUCER_VERTEX, IMPORTER_VERTEX, trade_edges)
 
-    return importers_with_id
-
-def add_producers(conn, products_with_id, countries_with_id, vom_df):
+def add_producers(conn, vom_df):
     # filt_vom_df = vom_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
     filt_vom_df = vom_df
     print('Filtered VOM:', filt_vom_df.shape)
@@ -108,10 +111,9 @@ def add_producers(conn, products_with_id, countries_with_id, vom_df):
     check_bad_percentages(with_sums, 'pct_of_national_output')
 
     vom_arr = with_sums[['NSAV_COMM', 'REG', 'Value', 'pct_of_national_output']].to_numpy().tolist()
-    # Only count the commod and reg as the key
-    producers_with_id = {(vom_arr[i][0], vom_arr[i][1]): i for i in range(len(vom_arr))}
     producer_nodes = [
-        (producers_with_id[(v[0], v[1])], 
+        # Only count the commod and reg as the key
+        (producer_code(product_code=v[0], country_code=v[1]), 
         {'pct_of_national_output': as_percent_fixed_point(v[3]),
          'market_val_dollars': as_fixed_point(v[2]),
          'product_code': v[0],
@@ -120,36 +122,31 @@ def add_producers(conn, products_with_id, countries_with_id, vom_df):
     upsert_nodes(conn, PRODUCER_VERTEX, producer_nodes)
     
     loc_edges = [
-        (producers_with_id[(v[0], v[1])],
-         countries_with_id[v[1]],
+        (producer_code(product_code=v[0], country_code=v[1]),
+         v[1],
          {})
         for v in vom_arr]
     upsert_edges(conn, LOCATION_EDGE, PRODUCER_VERTEX, COUNTRY_VERTEX, loc_edges)
 
     production_edges = [
-        (producers_with_id[(v[0], v[1])],
-         products_with_id[v[0]],
+        (producer_code(product_code=v[0], country_code=v[1]),
+         v[0],
          {})
         for v in vom_arr]
     upsert_edges(conn, PRODUCTION_EDGE, PRODUCER_VERTEX, PRODUCT_VERTEX, production_edges)
-    return producers_with_id
 
 def add_nodes(conn, vom_df):
-    products_with_id = items_with_ids('NSAV_COMM', vom_df)
-    add_nodes_by_code(conn, PRODUCT_VERTEX, products_with_id)
+    products = distinct_values_of('NSAV_COMM', vom_df)
+    add_nodes_with_code(conn, PRODUCT_VERTEX, products)
 
-    countries_with_id = items_with_ids('REG', vom_df)
-    add_nodes_by_code(conn, COUNTRY_VERTEX, countries_with_id)
+    countries = distinct_values_of('REG', vom_df)
+    add_nodes_with_code(conn, COUNTRY_VERTEX, countries)
 
-    producers_with_id = add_producers(conn, products_with_id, countries_with_id, vom_df)
+    add_producers(conn, vom_df)
 
-    return {'countries': countries_with_id, 'products': products_with_id, 'producers': producers_with_id}
-
-def add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df, vom_df):
+def add_product_input_edges(conn, vdfm_df, vifm_df, vom_df):
     filt_vdfm_df = vdfm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
     print('Filtered VDFM:', filt_vdfm_df.shape)
-
-    producers_with_id = node_id_dict['producers']
 
     product_input_sum = vdfm_df.groupby(['PROD_COMM', 'REG']).sum()
     with_sums = pd.merge(filt_vdfm_df, product_input_sum.rename(columns={'Value': 'sum-PROD_COMM-REG'}), on=['PROD_COMM', 'REG'])
@@ -167,8 +164,8 @@ def add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df, vom_df):
     # Direct the edge from the output producer to the
     # producer who has that as an input
     edges = [
-        (producers_with_id[(v[0], v[2])],
-         producers_with_id[(v[1], v[2])],
+        (producer_code(product_code=v[0], country_code=v[2]),
+         producer_code(product_code=v[1], country_code=v[2]),
          {'market_val_dollars': as_fixed_point(v[3]),
           'pct_of_producer_input': as_percent_fixed_point(v[4]),
           'pct_of_producer_output': as_percent_fixed_point(v[5])})
@@ -187,11 +184,9 @@ def add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df, vom_df):
     vifm_arr = i_with_sums[
         ['TRAD_COMM', 'PROD_COMM', 'REG', 'Value', 'pct_of_producer_input']
     ].to_numpy().tolist()
-    importers_with_id = node_id_dict['importers']
     edges = [
-        (importers_with_id[(v[0], v[2])],
-         producers_with_id[(v[1], v[2])],
-         # TODO: make these actually be correct percentages
+        (importer_code(product_code=v[0], country_code=v[2]),
+         producer_code(product_code=v[1], country_code=v[2]),
          {'market_val_dollars': as_fixed_point(v[3]),
              'pct_of_producer_input': as_percent_fixed_point(v[4])})
         for v in vifm_arr
@@ -226,13 +221,15 @@ def recreate_schema(drop_all, config):
     # intermediate edge than of interest in their own right
 
     print(conn.gsql(f'''
-create vertex {COUNTRY_VERTEX} (primary_id country_id UINT, code STRING)
+create vertex {COUNTRY_VERTEX} (primary_id country_id STRING, code STRING)
 
-create vertex {PRODUCT_VERTEX} (primary_id sector_id UINT, code STRING)
+create vertex {PRODUCT_VERTEX} (primary_id sector_id STRING, code STRING)
 
-create vertex {IMPORTER_VERTEX} (primary_id importer_id UINT, country_code STRING, product_code STRING, code STRING)
+create vertex {IMPORTER_VERTEX} (primary_id importer_id STRING, country_code STRING, product_code STRING, code STRING)
 
-create vertex {PRODUCER_VERTEX} (primary_id producer_id UINT, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT)
+create vertex {PRODUCER_VERTEX} (primary_id producer_id STRING, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT)
+
+create vertex {CONDITION_VERTEX} (primary_id id UINT, condition_description STRING)
 
 create undirected edge {LOCATION_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
 create undirected edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
@@ -248,7 +245,7 @@ create directed edge {PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUC
 
 create directed edge {TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT)
 
-create graph {UNFILTERED_GRAPH} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE}, {CRITICAL_INDUSTRY_EDGE}, {TRADE_SHOCK_EDGE}, {PRODUCTION_SHOCK_EDGE})
+create graph {GRAPHNAME} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE}, {CRITICAL_INDUSTRY_EDGE}, {TRADE_SHOCK_EDGE}, {PRODUCTION_SHOCK_EDGE})
 ''', options=[]))
     if drop_all:
         print('Now that drop all has been run you will need to create a secret and then add it to cfg.py to be able to do further operations (don\'t run with --drop-all again unless you want to repeat these steps!)')
@@ -276,18 +273,18 @@ def clear_old_data(conn):
     print(conn.runInterpretedQuery(read_resource('resources/gsql_queries/delete_all.gsql')))
 
 def write_data(config, paths):
-    conn = initDbForWriting(config, UNFILTERED_GRAPH)
+    conn = initDbForWriting(config, GRAPHNAME)
     clear_old_data(conn)
     vom_df = pd.read_pickle(paths['VOM'])
-    node_id_dict = add_nodes(conn, vom_df)
+    add_nodes(conn, vom_df)
     vxmd_df = pd.read_pickle(paths['VXMD'])
-    node_id_dict['importers'] = add_importers(conn, node_id_dict['producers'], vxmd_df, vom_df)
+    add_importers(conn, vxmd_df, vom_df)
     vdfm_df = pd.read_pickle(paths['VDFM'])
     vifm_df = pd.read_pickle(paths['VIFM'])
-    add_product_input_edges(conn, node_id_dict, vdfm_df, vifm_df, vom_df)
+    add_product_input_edges(conn, vdfm_df, vifm_df, vom_df)
     
     print(conn.getVertexStats('*'))
-    print(conn.getEdgeStats('*'))
+    # print(conn.getEdgeStats('*', skipNA=True))
 
 def to_json_file(path, obj):
     with open(path, 'w') as wri:
@@ -295,7 +292,7 @@ def to_json_file(path, obj):
 
 # TODO: defunct in effect - replace with other things
 def run_query(config, cut_producer_ids, input_thresh, import_thresh):
-    conn = initDbForWriting(config, UNFILTERED_GRAPH)
+    conn = initDbForWriting(config, GRAPHNAME)
     cut_params = [
         f'cuts[{i}]={p_id}&cuts[{i}].type=producer'
         for i, p_id in enumerate(cut_producer_ids)]
@@ -311,7 +308,7 @@ def run_query(config, cut_producer_ids, input_thresh, import_thresh):
     print(affected_countries)
 
 def run_affected_countries_query(config, cut_producer_ids):
-    conn = initDbForWriting(config, UNFILTERED_GRAPH)
+    conn = initDbForWriting(config, GRAPHNAME)
     cut_params = [
         f'starting_nodes[{i}]={p_id}&starting_nodes[{i}].type=producer'
         for i, p_id in enumerate(cut_producer_ids)]
@@ -329,11 +326,12 @@ def run_affected_countries_query(config, cut_producer_ids):
     print(affected_countries)
 
 def condition_graph(config, input_thresh, import_thresh, critical_ind_thresh):
-    conn = initDbForWriting(config, UNFILTERED_GRAPH)
+    conn = initDbForWriting(config, GRAPHNAME)
     params = f'input_pct_thresh={as_percent_fixed_point(input_thresh)}&import_pct_thresh={as_percent_fixed_point(import_thresh)}&national_output_thresh={as_percent_fixed_point(critical_ind_thresh)}'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(read_resource('resources/gsql_queries/condition_graph.gsql'), params)
     print(res)
+    print(conn.getEdgeStats('*'))
 
 
     
@@ -351,13 +349,15 @@ def main(args):
             'VIFM': f'{base_path}-BaseData-VIFM.pkl.bz2'}
         write_data(cfg, paths)
     else:
+        mex_oil = producer_code(product_code='oil', country_code='mex')
+        usa_oil = producer_code(product_code='oil', country_code='usa')
         # MEX oil & USA oil - covers most of the world!
-        # run_query(cfg, [1721, 1658], 0.25, 0.1)
+        run_query(cfg, [mex_oil, usa_oil], 0.25, 0.1)
 
         # LAOtian PCR (processed rice) - shouldn't go too far?
         # run_query(cfg, [783], 0.25, 0.01)
         # condition_graph(cfg, 0.25, 0.1, 0.05)
-        run_affected_countries_query(cfg, [1721, 1658])
+        # run_affected_countries_query(cfg, [mex_oil, usa_oil])
 
 # TODO: check the differences between the two versions make sense
 # Some time after that, we need to basically have some kind of webserver that has a

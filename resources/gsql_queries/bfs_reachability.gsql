@@ -1,7 +1,7 @@
-INTERPRET QUERY bfs_reachability1(SET<VERTEX> starting_nodes, SET<STRING> allowed_edge_types, SET<STRING> allowed_vertex_types, SET<STRING> final_vertex_types, BOOL report_links = FALSE) FOR GRAPH ecomonic_links_unfiltered { 
+INTERPRET QUERY bfs_reachability1(SET<VERTEX> starting_nodes, SET<STRING> allowed_edge_types, SET<STRING> allowed_vertex_types, SET<STRING> final_vertex_types, BOOL report_links = FALSE) FOR GRAPH ecomonic_links { 
   TYPEDEF TUPLE<VERTEX from_vertex, VERTEX to_vertex, EDGE e> link;
   OrAccum<BOOL> @visited;
-  SetAccum<link> @@allEdges;
+  SetAccum<EDGE> @@allEdges;
 
   to_visit = starting_nodes;
   while(to_visit.size() > 0) DO
@@ -11,7 +11,7 @@ INTERPRET QUERY bfs_reachability1(SET<VERTEX> starting_nodes, SET<STRING> allowe
       SELECT d FROM to_visit:s -(allowed_edge_types>:e)- allowed_vertex_types:d
       WHERE d.@visited == FALSE
       ACCUM IF report_links == TRUE THEN
-        @@allEdges += link(s, d, e)
+        @@allEdges += e
       END;
   
     to_visit = reachable;

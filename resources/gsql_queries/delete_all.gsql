@@ -1,4 +1,4 @@
-INTERPRET QUERY delete_all(/* Parameters here */) FOR GRAPH ecomonic_links_unfiltered { 
+INTERPRET QUERY delete_all(/* Parameters here */) FOR GRAPH ecomonic_links { 
   S = {producer.*};
   DELETE s FROM S:s;
   I = {importer.*};

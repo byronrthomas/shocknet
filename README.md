@@ -4,6 +4,7 @@
 * Tidy up any python / JS that may now be defunct
 * Ensure any dataframes etc required to run the code are in this repo (i.e. no paths to projects or other repos files in code..)
 * Ensure any queries that have been loaded to graphDB are loadable fresh from code
+* Try and avoid a new user needing to make a secret
 
 ## About
 

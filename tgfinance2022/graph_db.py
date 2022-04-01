@@ -96,10 +96,11 @@ create directed edge {PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUC
 
 create directed edge {TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT)
 
-create graph {GRAPHNAME} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE}, {CRITICAL_INDUSTRY_EDGE}, {TRADE_SHOCK_EDGE}, {PRODUCTION_SHOCK_EDGE})
+create graph {GRAPHNAME} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE}, {CRITICAL_INDUSTRY_EDGE}, {TRADE_SHOCK_EDGE}, {PRODUCTION_SHOCK_EDGE}, {CONDITION_VERTEX})
 ''', options=[]))
-    if drop_all:
-        print('Now that drop all has been run you will need to create a secret and then add it to cfg.py to be able to do further operations (don\'t run with --drop-all again unless you want to repeat these steps!)')
+    secret = conn.createSecret('pytigeraccess')
+    config['SECRET'] = secret
+    replace_in_config_file('SECRET', secret)
 
 def check_args():
     opts = [opt for opt in sys.argv[1:] if opt.startswith("-")]
@@ -123,6 +124,16 @@ def clear_old_data(conn):
 def make_config():
     return dotenv_values('.env')
 
+def replace_in_config_file(key, value):
+    with open('.env') as rdr:
+        lines = rdr.readlines()
+    updated_lines = [l for l in lines if not l.startswith(f'{key}=')]
+    updated_lines.append(f'{key}={value}')
+    with open('.env', 'w') as w:
+        w.writelines(updated_lines)
+
+def get_condition_info(conn):
+    return conn.getVertices(CONDITION_VERTEX)
 
 if __name__ == "__main__":
     args = check_args()

@@ -11,11 +11,14 @@ PRODUCT_VERTEX='product'
 IMPORTER_VERTEX='importer'
 PRODUCER_VERTEX='producer'
 LOCATION_EDGE='located_in'
+CRITICAL_INDUSTRY_EDGE='critical_industry_of'
 PRODUCTION_EDGE='produces'
 TRADE_EDGE='trades'
 DOMESTIC_INPUT_EDGE='uses_domestic_input'
 IMPORTED_INPUT_EDGE='uses_imported_input'
 UNFILTERED_GRAPH='ecomonic_links_unfiltered'
+PRODUCTION_SHOCK_EDGE='production_shock'
+TRADE_SHOCK_EDGE='trade_shock'
 
 def items_with_ids(lookup_key, df):
     vals = df[lookup_key].drop_duplicates().to_list()
@@ -232,6 +235,7 @@ create vertex {IMPORTER_VERTEX} (primary_id importer_id UINT, country_code STRIN
 create vertex {PRODUCER_VERTEX} (primary_id producer_id UINT, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT)
 
 create undirected edge {LOCATION_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
+create undirected edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
 create undirected edge {PRODUCTION_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCT_VERTEX})
 
 create directed edge {DOMESTIC_INPUT_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, market_val_dollars INT, pct_of_producer_input INT, pct_of_producer_output INT)
@@ -240,7 +244,11 @@ create directed edge {IMPORTED_INPUT_EDGE} (from {IMPORTER_VERTEX}, to {PRODUCER
 
 create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX}, market_val_dollars INT, pct_of_imported_product_total INT, pct_of_producer_output INT)
 
-create graph {UNFILTERED_GRAPH} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE})
+create directed edge {PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT)
+
+create directed edge {TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT)
+
+create graph {UNFILTERED_GRAPH} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE}, {CRITICAL_INDUSTRY_EDGE}, {TRADE_SHOCK_EDGE}, {PRODUCTION_SHOCK_EDGE})
 ''', options=[]))
     if drop_all:
         print('Now that drop all has been run you will need to create a secret and then add it to cfg.py to be able to do further operations (don\'t run with --drop-all again unless you want to repeat these steps!)')
@@ -285,7 +293,7 @@ def to_json_file(path, obj):
     with open(path, 'w') as wri:
        json.dump(obj, wri, indent=2)
 
-
+# TODO: defunct in effect - replace with other things
 def run_query(config, cut_producer_ids, input_thresh, import_thresh):
     conn = initDbForWriting(config, UNFILTERED_GRAPH)
     cut_params = [
@@ -302,7 +310,12 @@ def run_query(config, cut_producer_ids, input_thresh, import_thresh):
     print(f'All affected countries ({len(affected_countries)})...')
     print(affected_countries)
 
-    
+def condition_graph(config, input_thresh, import_thresh, critical_ind_thresh):
+    conn = initDbForWriting(config, UNFILTERED_GRAPH)
+    params = f'input_pct_thresh={as_percent_fixed_point(input_thresh)}&import_pct_thresh={as_percent_fixed_point(import_thresh)}&national_output_thresh={as_percent_fixed_point(critical_ind_thresh)}'
+    print('DEBUG - running with params string = ', params)
+    res = conn.runInterpretedQuery(read_resource('resources/gsql_queries/condition_graph.gsql'), params)
+    print(res)
     
 
 def main(args):
@@ -322,7 +335,8 @@ def main(args):
         # run_query(cfg, [1721, 1658], 0.25, 0.1)
 
         # LAOtian PCR (processed rice) - shouldn't go too far?
-        run_query(cfg, [783], 0.25, 0.01)
+        # run_query(cfg, [783], 0.25, 0.01)
+        condition_graph(cfg, 0.25, 0.1, 0.05)
 
 if __name__ == "__main__":
     args = check_args()

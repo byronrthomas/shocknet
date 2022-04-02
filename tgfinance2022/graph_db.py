@@ -49,7 +49,7 @@ def producer_code(product_code, country_code):
 def importer_code(country_code, product_code):
     return f"IMPORTED-TO-{country_code}-{product_code}"
 
-def initDbWithToken(config, graphname):
+def initDbWithToken(config, graphname=GRAPHNAME):
     conn = tg.TigerGraphConnection(host=config['HOSTNAME'], username=config['USERNAME'], password=config['PASSWORD'], graphname=graphname)
     conn.getToken(config['SECRET'])
     print('Able to get a token')

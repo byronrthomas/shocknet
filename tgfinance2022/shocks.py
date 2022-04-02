@@ -1,5 +1,5 @@
 import json
-import graph_db as db
+import tgfinance2022.graph_db as db
 import urllib.parse
 
 def current_condition(conn):
@@ -14,11 +14,11 @@ def assert_conditioned(conn):
     if not res:
         raise Exception("Not yet projected the graph to a conditioned form - cannot interact with shock info")
 
-def run_affected_countries_query(conn, cut_producer_ids):
+def run_affected_countries_query(conn, supply_shocked_producers):
     assert_conditioned(conn)
     cut_params = [
         f'starting_nodes[{i}]={p_id}&starting_nodes[{i}].type=producer'
-        for i, p_id in enumerate(cut_producer_ids)]
+        for i, p_id in enumerate(supply_shocked_producers)]
     cut_params = '&'.join(cut_params)
     params = f'{cut_params}&allowed_edge_types={db.CRITICAL_INDUSTRY_EDGE}&allowed_edge_types={db.TRADE_SHOCK_EDGE}&allowed_edge_types={db.PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&final_vertex_types={db.COUNTRY_VERTEX}&report_links=TRUE'
     print('DEBUG - running with params string = ', params)

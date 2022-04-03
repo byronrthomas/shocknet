@@ -284,24 +284,35 @@ function handleArcs (layer, data, options) {
   }
 
 export function initMap(rsp, elem) {
+    let data = {};
+    for (var affected of rsp['affected_countries']) {
+      let key = affected.v_id.toUpperCase();
+      data[key] = {
+        // TODO: add critical industries info
+        "fillKey": "impact",
+        "shock": "I am shocked"
+      };
+    }
+    console.log('Map data = ', data);
+
     // eslint-disable-next-line no-unused-vars
     var arcs = new Datamap({
         element: elem,
-        height: 600,
+        height: 900,
+        data: data,
         responsive: true,
-        scope: 'usa',
+        scope: 'world',
         fills: {
           defaultFill: "#ABDDA4",
-          win: '#0fa0fa'
+          impact: '#0fa0fa'
         },
-        data: {
-          'TX': { fillKey: 'win' },
-          'FL': { fillKey: 'win' },
-          'NC': { fillKey: 'win' },
-          'CA': { fillKey: 'win' },
-          'NY': { fillKey: 'win' },
-          'CO': { fillKey: 'win' }
-        }
+        geographyConfig: {
+          highlightFillColor: "#fc59e6",
+          popupTemplate: function(geography, data) {
+            // '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong></div>'
+            return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong><br/>Nature of the shock: ' +  data.shock + '</div>';
+          },
+        },
       });
     arcs.addPlugin('arc2', handleArcs);
     // Arcs coordinates can be specified explicitly with latitude/longtitude,

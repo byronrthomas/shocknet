@@ -16,8 +16,8 @@ axInstance.post(
     .then(function (response)
     {
         console.log('Got a successful response');
-        console.log(response);
-        initMap(response, document.getElementById("map"));
+        console.log(response['data']);
+        initMap(response['data'], document.getElementById("map"));
     })
     .catch(function (error) 
     {

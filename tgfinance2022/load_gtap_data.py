@@ -230,14 +230,6 @@ def main(args):
         condition_graph_float_proportions(conn, 0.25, 0.1, 0.05)
         run_shocks_query(conn, [mex_oil, usa_oil])
 
-# TODO: check the differences between the two versions make sense
-# Some time after that, we need to basically have some kind of webserver that has a
-#   Post new condition
-#   Get current condition (when I add a conditioning node, change the name of graph too)
-#   Based on condition do reachability
-#   Based on condition check paths
-#     etc..
-
 if __name__ == "__main__":
     args = check_args()
     try:

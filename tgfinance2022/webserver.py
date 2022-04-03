@@ -8,6 +8,11 @@ api = Flask(__name__)
 # For now, just share a single DB connection for the webserver
 conn = db.initDbWithToken(db.make_config())
 
+## Rationale: We want this webserver to be a super skinny layer over the raw
+## Python API (don't over-decouple it). We wouldn't use a webserver if we
+## didn't want to keep Python for interacting with TigerGraph and to use
+## Javascript for the visualizations - these are just the best choices, 
+## hence we have a webserver, this isn't supposed to be a full-fat 3-tier app!
 @api.route('/conditions', methods=['GET', 'POST'])
 def conditions():
     if request.method == 'POST':
@@ -17,12 +22,16 @@ def conditions():
     else:
         return jsonify(db.get_condition_info(conn))
 
+## Rationale: We want this webserver to be a super skinny layer over the raw
+## Python API (don't over-decouple it). We wouldn't use a webserver if we
+## didn't want to keep Python for interacting with TigerGraph and to use
+## Javascript for the visualizations - these are just the best choices, 
+## hence we have a webserver, this isn't supposed to be a full-fat 3-tier app!
 @api.route('/reachable', methods=['POST'])
 def reachable():
     param_data = request.get_json()
     print('Received JSON data: ', param_data)
     return jsonify(shocks.run_affected_countries_query(conn, **param_data))
-
 
 if __name__ == '__main__':
     api.run() 

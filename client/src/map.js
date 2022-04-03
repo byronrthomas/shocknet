@@ -1,4 +1,5 @@
 import Datamap from 'datamaps';
+import {commodityCodesToNames, regionNamesToMultiCountries} from './ref-data';
 
 var defaultOptions = {
     scope: 'world',
@@ -286,18 +287,39 @@ function handleArcs (layer, data, options) {
 function formatGraphRegion(graphReg) {
   // Initially can only pretend the graph REGs are single countries
   // But the map likes to refer to them in uppercase alpha-3s
+  if (graphReg in regionNamesToMultiCountries) {
+    // Return just the codes for the country
+    return regionNamesToMultiCountries[graphReg].codes_countries.map(x => x[0]);
+  }
   return [graphReg.toUpperCase()];
 }
 
 function formatGraphProducer(graphProducer) {
-  if (graphProducer.length != 7) {
+  if (graphProducer.length < 7) {
     // Should be a [three letter country code]-[three letter commod code] pattern
     console.log('WARN: cannot format as a producer:', graphProducer);
   }
   const graphComm = graphProducer.substring(4)
-  // TODO: actually look up the commodities properly
-  return graphComm;
+  const mapComm = commodityCodesToNames[graphComm];
+  if (!mapComm) {
+    console.log(`WARN: cannot find any corresponding commodity name for ${graphComm} - producer ${graphProducer}`);
+  }
+  return mapComm;
 }
+
+function findOverrideNames(mapByCode) {
+  const res = {};
+  for (var key in mapByCode) {
+    const val = mapByCode[key];
+    const nm = val.name;
+    for (var codeAndName of val.codes_countries) {
+      res[codeAndName[0]] = nm;
+    }
+  }
+  console.log('Override names = ', res);
+  return res;
+}
+const overrideRegionNameForCode = findOverrideNames(regionNamesToMultiCountries);
 
 const FIXED_POINT_DIVISOR = 10000;
 function formatFixedPoint(fixedPtNum) {
@@ -318,7 +340,7 @@ export function prepareMapData(rspData) {
   for ( var edge of edges.filter(e => allCountries.has(e.to_id)) ) {
     for ( var cnt of formatGraphRegion(edge.to_id) ) {
       if ( !(cnt in countryData) ) {
-        countryData[cnt] = {shockedIndustries: []};
+        countryData[cnt] = {shockedIndustries: [], nameOverride: overrideRegionNameForCode[cnt]};
       }
       console.log(`Adding industry ${edge.from_id} to country ${cnt}`);
       countryData[cnt].shockedIndustries.push({
@@ -357,7 +379,11 @@ export function initMap(affectedCountryData, elem) {
         geographyConfig: {
           highlightFillColor: '#0fa0fa',
           popupTemplate: function(geography, data) {
-            return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong><br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + '</div>';
+            return '<div class="hoverinfo">' + 
+            (data.nameOverride ? 
+              `<strong>${data.nameOverride} Region</strong> (includes ${geography.properties.name})` : 
+              `<strong>${geography.properties.name}</strong>`) + 
+            '<br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + '</div>';
           },
         },
       });

@@ -283,15 +283,47 @@ function handleArcs (layer, data, options) {
       .remove();
   }
 
-export function initMap(rsp, elem) {
+function formatGraphRegion(graphReg) {
+  // Initially can only pretend the graph REGs are single countries
+  // But the map likes to refer to them in uppercase alpha-3s
+  return [graphReg.toUpperCase()];
+}
+
+function formatGraphProducer(graphProducer) {
+  if (graphProducer.length != 7) {
+    // Should be a [three letter country code]-[three letter commod code] pattern
+    console.log('WARN: cannot format as a producer:', graphProducer);
+  }
+  const graphComm = graphProducer.substring(4)
+  // TODO: actually look up the commodities properly
+  return graphComm;
+}
+
+export function prepareMapData(rspData) {
+  let allCountries = new Set(); 
+  rspData.affected_countries.forEach(x => allCountries.add(x.v_id));
+  const countryData = {}
+  const edges = rspData.reachable_edges;
+  console.log('edges = ', edges);
+  console.log(rspData);
+  for ( var edge of edges.filter(e => allCountries.has(e.to_id)) ) {
+    for ( var cnt of formatGraphRegion(edge.to_id) ) {
+      if ( !(cnt in countryData) ) {
+        countryData[cnt] = {shockedIndustries: []};
+      }
+      console.log(`Adding industry ${edge.from_id} to country ${cnt}`);
+      countryData[cnt].shockedIndustries.push(formatGraphProducer(edge.from_id));
+    }
+  }
+  return countryData;
+}
+
+export function initMap(affectedCountryData, elem) {
     let data = {};
-    for (var affected of rsp['affected_countries']) {
-      let key = affected.v_id.toUpperCase();
-      data[key] = {
-        // TODO: add critical industries info
+    for (var affected of Object.getOwnPropertyNames(affectedCountryData)) {
+      data[affected] = {
         "fillKey": "impact",
-        "shock": "I am shocked"
-      };
+        ...affectedCountryData[affected]};
     }
     console.log('Map data = ', data);
 
@@ -304,13 +336,13 @@ export function initMap(rsp, elem) {
         scope: 'world',
         fills: {
           defaultFill: "#ABDDA4",
-          impact: '#0fa0fa'
+          impact: "#fc59e6",
         },
         geographyConfig: {
-          highlightFillColor: "#fc59e6",
+          highlightFillColor: '#0fa0fa',
           popupTemplate: function(geography, data) {
             // '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong></div>'
-            return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong><br/>Nature of the shock: ' +  data.shock + '</div>';
+            return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong><br/>Impacted critical sectors: ' +  data.shockedIndustries.join('; ') + '</div>';
           },
         },
       });

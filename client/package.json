@@ -24,6 +24,7 @@
     "webpack-dev-server": "^4.7.4"
   },
   "dependencies": {
+    "axios": "^0.26.1",
     "datamaps": "^0.4.4"
   }
 }

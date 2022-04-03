@@ -283,7 +283,7 @@ function handleArcs (layer, data, options) {
       .remove();
   }
 
-export function initMap(elem) {
+export function initMap(rsp, elem) {
     // eslint-disable-next-line no-unused-vars
     var arcs = new Datamap({
         element: elem,

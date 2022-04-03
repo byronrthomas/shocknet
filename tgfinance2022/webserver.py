@@ -1,10 +1,12 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 import tgfinance2022.graph_db as db
 from tgfinance2022 import shocks
 
 companies = [{"id": 1, "name": "Company One"}, {"id": 2, "name": "Company Two"}]
 
 api = Flask(__name__)
+CORS(api)
 # For now, just share a single DB connection for the webserver
 conn = db.initDbWithToken(db.make_config())
 

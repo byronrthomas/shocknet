@@ -9,3 +9,4 @@ geopy == 2.2.0
 pycountry == 22.3.5
 #_geoviews == 1.9.5
 Flask ~= 2.1.1
+Flask-Cors ~= 3.0.10

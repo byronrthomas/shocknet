@@ -2,8 +2,8 @@ import json
 import pandas as pd
 import sys
 
-import shocks
-from graph_db import COUNTRY_VERTEX, CRITICAL_INDUSTRY_EDGE, DOMESTIC_INPUT_EDGE, GRAPHNAME, IMPORTED_INPUT_EDGE, IMPORTER_VERTEX, LOCATION_EDGE, PRODUCER_VERTEX, PRODUCT_VERTEX, PRODUCTION_EDGE, PRODUCTION_SHOCK_EDGE, TRADE_EDGE, TRADE_SHOCK_EDGE, add_nodes_with_code, as_fixed_point, as_percent_fixed_point, clear_old_data, importer_code, initDbWithToken, make_config, producer_code, read_resource, upsert_edges, upsert_nodes
+import tgfinance2022.shocks as shocks
+from tgfinance2022.graph_db import COUNTRY_VERTEX, CRITICAL_INDUSTRY_EDGE, DOMESTIC_INPUT_EDGE, GRAPHNAME, IMPORTED_INPUT_EDGE, IMPORTER_VERTEX, LOCATION_EDGE, PRODUCER_VERTEX, PRODUCT_VERTEX, PRODUCTION_EDGE, PRODUCTION_SHOCK_EDGE, TRADE_EDGE, TRADE_SHOCK_EDGE, add_nodes_with_code, as_fixed_point, as_percent_fixed_point, clear_old_data, importer_code, initDbWithToken, make_config, producer_code, read_resource, upsert_edges, upsert_nodes
 
 def distinct_values_of(lookup_key, df):
     return df[lookup_key].drop_duplicates().to_list()

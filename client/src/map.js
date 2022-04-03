@@ -299,6 +299,15 @@ function formatGraphProducer(graphProducer) {
   return graphComm;
 }
 
+const FIXED_POINT_DIVISOR = 10000;
+function formatFixedPoint(fixedPtNum) {
+  return fixedPtNum / FIXED_POINT_DIVISOR;
+}
+
+function formatFixedPercentage(fixedPtNum) {
+  return formatFixedPoint(fixedPtNum);
+}
+
 export function prepareMapData(rspData) {
   let allCountries = new Set(); 
   rspData.affected_countries.forEach(x => allCountries.add(x.v_id));
@@ -312,10 +321,17 @@ export function prepareMapData(rspData) {
         countryData[cnt] = {shockedIndustries: []};
       }
       console.log(`Adding industry ${edge.from_id} to country ${cnt}`);
-      countryData[cnt].shockedIndustries.push(formatGraphProducer(edge.from_id));
+      countryData[cnt].shockedIndustries.push({
+        name: formatGraphProducer(edge.from_id),
+        gdp_pct: formatFixedPercentage(edge.attributes.pct_of_national_output),
+      });
     }
   }
   return countryData;
+}
+
+function industryShockAsText({name, gdp_pct}) {
+  return `${name} (${gdp_pct}% of GDP)`;
 }
 
 export function initMap(affectedCountryData, elem) {
@@ -341,8 +357,7 @@ export function initMap(affectedCountryData, elem) {
         geographyConfig: {
           highlightFillColor: '#0fa0fa',
           popupTemplate: function(geography, data) {
-            // '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong></div>'
-            return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong><br/>Impacted critical sectors: ' +  data.shockedIndustries.join('; ') + '</div>';
+            return '<div class="hoverinfo"><strong>' + geography.properties.name + '</strong><br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + '</div>';
           },
         },
       });

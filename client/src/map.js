@@ -330,13 +330,13 @@ function formatFixedPercentage(fixedPtNum) {
   return formatFixedPoint(fixedPtNum);
 }
 
-export function prepareMapData(rspData) {
+export function prepareCountryData(rspData) {
   let allCountries = new Set(); 
   rspData.affected_countries.forEach(x => allCountries.add(x.v_id));
   const countryData = {}
   const edges = rspData.reachable_edges;
-  console.log('edges = ', edges);
-  console.log(rspData);
+  // console.log('edges = ', edges);
+  // console.log(rspData);
   for ( var edge of edges.filter(e => allCountries.has(e.to_id)) ) {
     for ( var cnt of formatGraphRegion(edge.to_id) ) {
       if ( !(cnt in countryData) ) {
@@ -352,11 +352,61 @@ export function prepareMapData(rspData) {
   return countryData;
 }
 
+function graphProducerToGraphRegion(code) {
+  return code.substring(0, 3);
+}
+
+function ensureKeyPresent(obj, key, defaultValue) {
+  if (!(key in obj)) {
+    obj[key] = defaultValue;
+  }
+} 
+
+export function prepareLinkData(rspData) {
+  const edges = rspData.reachable_edges;
+  console.log('edges = ', edges);
+  const tradeByFromAndToCountry = {};
+  const productionWithinCountry = {};
+  for (var edge of edges) {
+    if (edge.from_type === 'producer' && edge.to_type === 'producer') {
+      const fromReg = graphProducerToGraphRegion(edge.from_id);
+      const toReg = graphProducerToGraphRegion(edge.to_id);
+      const fromCountries = formatGraphRegion(fromReg);
+      const edgeDetails = {
+        'tradedCommodity': formatGraphProducer(edge.from_id),
+        'producedCommodity': formatGraphProducer(edge.to_id),
+        ...edge.attributes
+      };
+      if (fromReg !== toReg) {
+        const toCountries = formatGraphRegion(toReg);
+        for ( var fc of fromCountries ) {
+          for ( var tc of toCountries ) {
+            ensureKeyPresent(tradeByFromAndToCountry, fc, {});
+            ensureKeyPresent(tradeByFromAndToCountry[fc], tc, []);
+            tradeByFromAndToCountry[fc][tc].push(edgeDetails);
+          }
+        }
+      } else {
+        for ( fc of fromCountries ) {
+          ensureKeyPresent(productionWithinCountry, fc, []);
+          productionWithinCountry[fc].push(edgeDetails);
+        }
+      }
+    }
+  }
+  console.log('productionWithinCountry = ', productionWithinCountry);
+  console.log('tradeByFromAndToCountry = ', tradeByFromAndToCountry);
+  return {
+    tradeByFromAndToCountry,
+    productionWithinCountry
+  };
+}
+
 function industryShockAsText({name, gdp_pct}) {
   return `${name} (${gdp_pct}% of GDP)`;
 }
 
-export function initMap(affectedCountryData, elem) {
+export function initMap(affectedCountryData, sectorLinkData, elem) {
     let data = {};
     for (var affected of Object.getOwnPropertyNames(affectedCountryData)) {
       data[affected] = {

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {prepareMapData, initMap} from './map';
+import {prepareCountryData, initMap, prepareLinkData} from './map';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -17,8 +17,9 @@ axInstance.post(
     {
         console.log('Got a successful response');
         console.log(response['data']);
-        const affectedCountryData = prepareMapData(response['data']);
-        initMap(affectedCountryData, document.getElementById("map"));
+        const affectedCountryData = prepareCountryData(response['data']);
+        const sectorLinkData = prepareLinkData(response['data']);
+        initMap(affectedCountryData, sectorLinkData, document.getElementById("map"));
     })
     .catch(function (error) 
     {

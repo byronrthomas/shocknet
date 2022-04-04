@@ -209,7 +209,6 @@ def run_shocks_query(config, starting_producers):
     print(f'All affected countries ({len(affected_countries)})...')
     print(affected_countries)
 
-
 def main(args):
     cfg = make_config()
     if args['write-data']:

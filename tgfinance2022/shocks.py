@@ -14,6 +14,23 @@ def assert_conditioned(conn):
     if not res:
         raise Exception("Not yet projected the graph to a conditioned form - cannot interact with shock info")
 
+def remove_edges_not_on_destination_path(links, end_ids):
+    dest_set = set(end_ids)
+    included_edges = []
+    processable_edges = [link for link in links]
+    
+    while True:
+        to_add = [e for e in processable_edges if e["to_id"] in dest_set]
+        if len(to_add) == 0:
+            break
+
+        for e in to_add:
+            processable_edges.remove(e)
+            dest_set.add(e["from_id"])
+            included_edges.append(e)
+    
+    return included_edges
+
 def run_affected_countries_query(conn, supply_shocked_producers):
     assert_conditioned(conn)
     cut_params = [
@@ -23,9 +40,15 @@ def run_affected_countries_query(conn, supply_shocked_producers):
     params = f'{cut_params}&allowed_edge_types={db.CRITICAL_INDUSTRY_EDGE}&allowed_edge_types={db.TRADE_SHOCK_EDGE}&allowed_edge_types={db.PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&final_vertex_types={db.COUNTRY_VERTEX}&report_links=TRUE'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/bfs_reachability.gsql'), params)
+    edges = res[1]['@@allEdges']
+    affected_countries = res[0]['res']
+    print('pre-filtered edge count', len(edges))
+    affected_country_ids = [c['v_id'] for c in affected_countries]
+    edges = remove_edges_not_on_destination_path(edges, affected_country_ids)
+    print('reachable edge count', len(edges))
     return {
-        'affected_countries': res[0]['res'],
-        'reachable_edges': res[1]['@@allEdges']}
+        'affected_countries': affected_countries,
+        'reachable_edges': edges}
 
 def format_percentage(fixed):
     return f'{fixed / 10000.0}%'

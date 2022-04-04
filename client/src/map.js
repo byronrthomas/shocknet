@@ -158,7 +158,7 @@ function handleArcs (layer, data, options) {
             return val(datum.strokeWidth, options.strokeWidth, datum);
         })
         .attr('d', function(datum) {
-
+            console.log('Handling datum =', datum);
             var originXY, destXY;
 
             if (typeof datum.origin === "string") {
@@ -416,7 +416,7 @@ export function initMap(affectedCountryData, sectorLinkData, elem) {
     console.log('Map data = ', data);
 
     // eslint-disable-next-line no-unused-vars
-    var arcs = new Datamap({
+    var shock_map = new Datamap({
         element: elem,
         height: 900,
         data: data,
@@ -437,56 +437,22 @@ export function initMap(affectedCountryData, sectorLinkData, elem) {
           },
         },
       });
-    arcs.addPlugin('arc2', handleArcs);
+      shock_map.addPlugin('arc2', handleArcs);
     // Arcs coordinates can be specified explicitly with latitude/longtitude,
     // or just the geographic center of the state/country.
-      arcs.arc2([
-        {
-          origin: 'CA',
-          destination: 'TX'
-        },
-        {
-          origin: 'OR',
-          destination: 'TX'
-        },
-        {
-          origin: 'NY',
-          destination: 'TX'
-        },
-        {
-            origin: {
-                latitude: 40.639722,
-                longitude: -73.778889
-            },
-            destination: {
-                latitude: 37.618889,
-                longitude: -122.375
+    const arcs = []
+    const tradeShockLinks = sectorLinkData['tradeByFromAndToCountry']
+    for ( var fromC in tradeShockLinks ) {
+      for ( var toC in tradeShockLinks[fromC] ) {
+        // TODO: not sure if it's possible to add data to arcs, but do it if we can
+        // if we were, we'd add the contents of tradeShockLinks[fromC][toC] here for display
+        arcs.push({
+          origin: fromC,
+          destination: toC
+        });
             }
-        },
-        {
-            origin: {
-                latitude: 30.194444,
-                longitude: -97.67
-            },
-            destination: {
-                latitude: 25.793333,
-                longitude: -80.290556
-            },
-            options: {
-              strokeWidth: 2,
-              strokeColor: 'rgba(100, 10, 200, 0.4)',
-              greatArc: true
             }
-        },
-        {
-            origin: {
-                latitude: 39.861667,
-                longitude: -104.673056
-            },
-            destination: {
-                latitude: 35.877778,
-                longitude: -78.7875
-            }
-        }
-      ],  {strokeWidth: 1, arcSharpness: 1.4});
+    console.log('arcs', arcs);
+    shock_map.arc2(arcs,  {strokeWidth: 2, arcSharpness: 1, strokeColor: '#f81313'});
+
 }

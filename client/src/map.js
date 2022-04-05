@@ -429,20 +429,12 @@ function industryShockAsText({name, gdp_pct}) {
   return `${name} (${gdp_pct}% of GDP)`;
 }
 
-export function initMap(affectedCountryData, sectorLinkData, elem) {
-    let data = {};
-    for (var affected of Object.getOwnPropertyNames(affectedCountryData)) {
-      data[affected] = {
-        "fillKey": "impact",
-        ...affectedCountryData[affected]};
-    }
-    console.log('Map data = ', data);
-
+export function initMap(elem) {
     // eslint-disable-next-line no-unused-vars
     var shock_map = new Datamap({
         element: elem,
         height: 900,
-        data: data,
+        data: {},
         responsive: true,
         scope: 'world',
         fills: {
@@ -465,65 +457,78 @@ export function initMap(affectedCountryData, sectorLinkData, elem) {
         },
       });
       shock_map.addPlugin('arc2', handleArcs);
-    // Arcs coordinates can be specified explicitly with latitude/longtitude,
-    // or just the geographic center of the state/country.
-    const arcs = [];
-    const tradeShockLinks = sectorLinkData['tradeByFromAndToCountry'];
-    for ( var fromC in tradeShockLinks ) {
-      for ( var toC in tradeShockLinks[fromC] ) {
-        // TODO: not sure if it's possible to add data to arcs, but do it if we can
-        // if we were, we'd add the contents of tradeShockLinks[fromC][toC] here for display
-        arcs.push({
-          origin: fromC,
-          destination: toC,
-          'fromOverride': overrideRegionNameForCode[fromC],
-          'toOverride': overrideRegionNameForCode[toC],
-          transfers: tradeShockLinks[fromC][toC],
-        });
-      }
-    }
-    function arcPopupTemplate(geography, data) {
-      const fromCountry = codeToCountry(data.origin);
-      const toCountry = codeToCountry(data.destination);
-      const fromLbl = data.fromOverride ? data.fromOverride : fromCountry;
-      const toLbl = data.toOverride ? data.toOverride : toCountry;
-      const transferDetails = data.transfers.map(tr => `[${tr.tradedCommodity}] from ${fromLbl} -> [${tr.producedCommodity}] in ${toLbl}: [${tr.tradedCommodity}] from ${fromLbl} is ${formatFixedPercentage(tr.pct_of_imported_product_total)}% of the total imported into ${toLbl}, and imported [${tr.tradedCommodity}] makes up ${formatFixedPercentage(tr.pct_of_producer_input)}% of the inputs to [${tr.producedCommodity}] in ${toLbl}`);
-      return '<div class="hoverinfo"><strong>Shock: ' + fromLbl + ' -> ' + toLbl + '</strong><br>'
-      + transferDetails.join('<br>') + '</div>';
-    }
-    console.log('arcs', arcs);
-    shock_map.arc2(arcs,  {strokeWidth: 1.5, arcSharpness: 1, strokeColor: '#f81313', popupOnHover: true, popupTemplate: arcPopupTemplate});
+      return shock_map;
+}
 
-    const bubbles = [];
-    const localShocks = sectorLinkData['productionWithinCountry'];
-    const defaultBubble = {
-      radius: 5,
-      fillKey: 'transfer'
-    };
-    for (var localCnt in localShocks) {
-      const toPush = {
-        transfers: localShocks[localCnt], 
-        countryOverride: overrideRegionNameForCode[localCnt],
-        ...defaultBubble};
-      // if (localCnt in COMMON_LAT_LONG_OVERRIDES) {
-      //   bubbles.push({
-      //     ...COMMON_LAT_LONG_OVERRIDES[localCnt],
-      //     ...toPush
-      //   })
-      // } else {
-        bubbles.push({
-          centered: localCnt, 
-          ...toPush});
-      // }
+export function mapShocks(shock_map, affectedCountryData, sectorLinkData) {
+  let data = {};
+  for (var affected of Object.getOwnPropertyNames(affectedCountryData)) {
+    data[affected] = {
+      "fillKey": "impact",
+      ...affectedCountryData[affected]};
+  }
+  console.log('Map data = ', data);
+  shock_map.updateChoropleth(data);
+
+  // Arcs coordinates can be specified explicitly with latitude/longtitude,
+  // or just the geographic center of the state/country.
+  const arcs = [];
+  const tradeShockLinks = sectorLinkData['tradeByFromAndToCountry'];
+  for ( var fromC in tradeShockLinks ) {
+    for ( var toC in tradeShockLinks[fromC] ) {
+      // TODO: not sure if it's possible to add data to arcs, but do it if we can
+      // if we were, we'd add the contents of tradeShockLinks[fromC][toC] here for display
+      arcs.push({
+        origin: fromC,
+        destination: toC,
+        'fromOverride': overrideRegionNameForCode[fromC],
+        'toOverride': overrideRegionNameForCode[toC],
+        transfers: tradeShockLinks[fromC][toC],
+      });
     }
-    console.log('bubbles', bubbles);
-    shock_map.bubbles(bubbles, {
-      popupTemplate: function(geo, data) {
-        const lbl = data.countryOverride ?? codeToCountry(data.centered);
-        const transferDetails = data.transfers.map(tr => `${tr.tradedCommodity} -> ${tr.producedCommodity}: [${tr.tradedCommodity}] makes up ${formatFixedPercentage(tr.pct_of_producer_input)}% of the inputs to [${tr.producedCommodity}] in ${lbl}`);
-        return '<div class="hoverinfo"><strong>Local shock transfer in ' + lbl +
-          '</strong><br>' + transferDetails.join('<br>') + '</div>';
-      }
-    });
+  }
+  function arcPopupTemplate(geography, data) {
+    const fromCountry = codeToCountry(data.origin);
+    const toCountry = codeToCountry(data.destination);
+    const fromLbl = data.fromOverride ? data.fromOverride : fromCountry;
+    const toLbl = data.toOverride ? data.toOverride : toCountry;
+    const transferDetails = data.transfers.map(tr => `[${tr.tradedCommodity}] from ${fromLbl} -> [${tr.producedCommodity}] in ${toLbl}: [${tr.tradedCommodity}] from ${fromLbl} is ${formatFixedPercentage(tr.pct_of_imported_product_total)}% of the total imported into ${toLbl}, and imported [${tr.tradedCommodity}] makes up ${formatFixedPercentage(tr.pct_of_producer_input)}% of the inputs to [${tr.producedCommodity}] in ${toLbl}`);
+    return '<div class="hoverinfo"><strong>Shock: ' + fromLbl + ' -> ' + toLbl + '</strong><br>'
+    + transferDetails.join('<br>') + '</div>';
+  }
+  console.log('arcs', arcs);
+  shock_map.arc2(arcs,  {strokeWidth: 1.5, arcSharpness: 1, strokeColor: '#f81313', popupOnHover: true, popupTemplate: arcPopupTemplate});
+
+  const bubbles = [];
+  const localShocks = sectorLinkData['productionWithinCountry'];
+  const defaultBubble = {
+    radius: 5,
+    fillKey: 'transfer'
+  };
+  for (var localCnt in localShocks) {
+    const toPush = {
+      transfers: localShocks[localCnt], 
+      countryOverride: overrideRegionNameForCode[localCnt],
+      ...defaultBubble};
+    // if (localCnt in COMMON_LAT_LONG_OVERRIDES) {
+    //   bubbles.push({
+    //     ...COMMON_LAT_LONG_OVERRIDES[localCnt],
+    //     ...toPush
+    //   })
+    // } else {
+      bubbles.push({
+        centered: localCnt, 
+        ...toPush});
+    // }
+  }
+  console.log('bubbles', bubbles);
+  shock_map.bubbles(bubbles, {
+    popupTemplate: function(geo, data) {
+      const lbl = data.countryOverride ?? codeToCountry(data.centered);
+      const transferDetails = data.transfers.map(tr => `${tr.tradedCommodity} -> ${tr.producedCommodity}: [${tr.tradedCommodity}] makes up ${formatFixedPercentage(tr.pct_of_producer_input)}% of the inputs to [${tr.producedCommodity}] in ${lbl}`);
+      return '<div class="hoverinfo"><strong>Local shock transfer in ' + lbl +
+        '</strong><br>' + transferDetails.join('<br>') + '</div>';
+    }
+  });
 
 }

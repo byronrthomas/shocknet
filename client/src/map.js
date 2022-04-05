@@ -1,5 +1,14 @@
 import Datamap from 'datamaps';
 import {commodityCodesToNames, regionNamesToMultiCountries} from './ref-data';
+import iso from 'iso-3166-1';
+
+function codeToCountry(code) {
+  const isoRes = iso.whereAlpha3(code);
+  if (isoRes) {
+    return isoRes.country;
+  }
+  console.log(`WARN: unable to find any info about ${code}`)
+}
 
 var defaultOptions = {
     scope: 'world',
@@ -120,6 +129,18 @@ var defaultOptions = {
         }
       }
 
+// const COMMON_LAT_LONG_OVERRIDES = {
+//   "CAN": {latitude: 56.624472, longitude: -114.665293},
+//   "CHL": {latitude: -33.448890, longitude: -70.669265},
+//   "HRV": {latitude: 45.815011, longitude: 15.981919},
+//   "IDN": {latitude: -6.208763, longitude: 106.845599},
+//   "JPN": {latitude: 35.689487, longitude: 139.691706},
+//   "MYS": {latitude: 3.139003, longitude: 101.686855},
+//   "NOR": {latitude: 59.913869, longitude: 10.752245},
+//   "USA": {latitude: 41.140276, longitude: -100.760145},
+//   "VNM": {latitude: 21.027764, longitude: 105.834160},
+// }
+
 function handleArcs (layer, data, options) {
     var self = this,
         svg = this.svg;
@@ -137,8 +158,10 @@ function handleArcs (layer, data, options) {
     }
 
     if ( typeof options === "undefined" ) {
+      console.log('Options was undefined');
       options = defaultOptions.arcConfig;
     }
+    console.log('Options = ', options);
 
     var arcs = layer.selectAll('path.datamaps-arc').data( data, JSON.stringify );
 
@@ -425,6 +448,7 @@ export function initMap(affectedCountryData, sectorLinkData, elem) {
         fills: {
           defaultFill: "#ABDDA4",
           impact: "#fc59e6",
+          transfer: '#f81313',
         },
         geographyConfig: {
           highlightFillColor: '#0fa0fa',
@@ -436,23 +460,70 @@ export function initMap(affectedCountryData, sectorLinkData, elem) {
             '<br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + '</div>';
           },
         },
+        arcConfig: {
+          popupOnHover: true,
+        },
       });
       shock_map.addPlugin('arc2', handleArcs);
     // Arcs coordinates can be specified explicitly with latitude/longtitude,
     // or just the geographic center of the state/country.
-    const arcs = []
-    const tradeShockLinks = sectorLinkData['tradeByFromAndToCountry']
+    const arcs = [];
+    const tradeShockLinks = sectorLinkData['tradeByFromAndToCountry'];
     for ( var fromC in tradeShockLinks ) {
       for ( var toC in tradeShockLinks[fromC] ) {
         // TODO: not sure if it's possible to add data to arcs, but do it if we can
         // if we were, we'd add the contents of tradeShockLinks[fromC][toC] here for display
         arcs.push({
           origin: fromC,
-          destination: toC
+          destination: toC,
+          'fromOverride': overrideRegionNameForCode[fromC],
+          'toOverride': overrideRegionNameForCode[toC],
+          transfers: tradeShockLinks[fromC][toC],
         });
-            }
-            }
+      }
+    }
+    function arcPopupTemplate(geography, data) {
+      const fromCountry = codeToCountry(data.origin);
+      const toCountry = codeToCountry(data.destination);
+      const fromLbl = data.fromOverride ? data.fromOverride : fromCountry;
+      const toLbl = data.toOverride ? data.toOverride : toCountry;
+      const transferDetails = data.transfers.map(tr => `[${tr.tradedCommodity}] from ${fromLbl} -> [${tr.producedCommodity}] in ${toLbl}: [${tr.tradedCommodity}] from ${fromLbl} is ${formatFixedPercentage(tr.pct_of_imported_product_total)}% of the total imported into ${toLbl}, and imported [${tr.tradedCommodity}] makes up ${formatFixedPercentage(tr.pct_of_producer_input)}% of the inputs to [${tr.producedCommodity}] in ${toLbl}`);
+      return '<div class="hoverinfo"><strong>Shock: ' + fromLbl + ' -> ' + toLbl + '</strong><br>'
+      + transferDetails.join('<br>') + '</div>';
+    }
     console.log('arcs', arcs);
-    shock_map.arc2(arcs,  {strokeWidth: 2, arcSharpness: 1, strokeColor: '#f81313'});
+    shock_map.arc2(arcs,  {strokeWidth: 1.5, arcSharpness: 1, strokeColor: '#f81313', popupOnHover: true, popupTemplate: arcPopupTemplate});
+
+    const bubbles = [];
+    const localShocks = sectorLinkData['productionWithinCountry'];
+    const defaultBubble = {
+      radius: 5,
+      fillKey: 'transfer'
+    };
+    for (var localCnt in localShocks) {
+      const toPush = {
+        transfers: localShocks[localCnt], 
+        countryOverride: overrideRegionNameForCode[localCnt],
+        ...defaultBubble};
+      // if (localCnt in COMMON_LAT_LONG_OVERRIDES) {
+      //   bubbles.push({
+      //     ...COMMON_LAT_LONG_OVERRIDES[localCnt],
+      //     ...toPush
+      //   })
+      // } else {
+        bubbles.push({
+          centered: localCnt, 
+          ...toPush});
+      // }
+    }
+    console.log('bubbles', bubbles);
+    shock_map.bubbles(bubbles, {
+      popupTemplate: function(geo, data) {
+        const lbl = data.countryOverride ?? codeToCountry(data.centered);
+        const transferDetails = data.transfers.map(tr => `${tr.tradedCommodity} -> ${tr.producedCommodity}: [${tr.tradedCommodity}] makes up ${formatFixedPercentage(tr.pct_of_producer_input)}% of the inputs to [${tr.producedCommodity}] in ${lbl}`);
+        return '<div class="hoverinfo"><strong>Local shock transfer in ' + lbl +
+          '</strong><br>' + transferDetails.join('<br>') + '</div>';
+      }
+    });
 
 }

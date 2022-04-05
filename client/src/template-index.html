@@ -1,10 +1,68 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8"/>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
     <title><%= htmlWebpackPlugin.options.title %></title>
   </head>
   <body>
+    <div class="container-fluid">
+      <div class="jumbotron">
+        <h1>The Econo-Shock-Transfer-O-Meter</h1>
+        <p>Inspired by the saying "If America sneezes, the world catches a cold" - how will various
+          shocks transfer around the world economy, based on differing assumptions?
+        </p>
+      </div>
+
+      <div class="panel panel-info">
+        <div class="panel-heading">
+          <h3 class="panel-title">Set your assumptions</h3>
+        </div>
+        <div class="panel-body">
+          TODO: editable - inputs_100000_imports_500000_critical_ind_100000
+        </div>
+      </div>
+
+      <div class="panel panel-warning">
+        <div class="panel-heading">
+          <h3 class="panel-title">Choose your analysis</h3>
+        </div>
+        <div class="panel-body">
+          <div class="row">
+            <div class="col-sm-4">
+              <div class="radio">
+                <label>
+                  <input type="radio" name="optionsRadios" id="optionsRadiosSpread" value="shockReachability" checked>
+                  Supply shock spread analysis - which countries will be affected by an initial shock?
+                </label>
+              </div>
+              <div class="radio">
+                <label>
+                  <input type="radio" name="optionsRadios" id="optionsRadiosOther" value="otherAnalysis">
+                  A.N. Other analysis - TODO: name me well!
+                </label>
+              </div>
+              <div class="radio disabled">
+                <label>
+                  <input type="radio" name="optionsRadios" id="optionsRadios3" value="option3" disabled>
+                  Option three is disabled
+                </label>
+              </div>
+              <button class="btn btn-large btn-warning" id="btnRunAnalysis">Do Analysis</button>
+            </div>
+            <div class="col-sm-8">
+              <p>Stuff goes in here</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="map"></div>
+    </div>
+      
   </body>
 </html>

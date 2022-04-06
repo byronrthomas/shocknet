@@ -82,7 +82,7 @@ def summarise_country_groups_from_query(all_nodes, group_attrib_name):
         'communities': communities
     }
 
-def find_country_partitions(conn, use_weak_cc=True, additional_params_string=''):
+def find_country_partitions(conn, use_weak_cc=True, additional_params_string='', verbose=False):
     assert_conditioned(conn)
     v_type_params = 'v_type=country&v_type=producer'
     e_type_params = 'e_type=trade_shock&e_type=critical_industry_of&e_type=has_industry&e_type=production_shock'
@@ -101,7 +101,11 @@ def find_country_partitions(conn, use_weak_cc=True, additional_params_string='')
     all_nodes = res[2]['Start'] if use_weak_cc else res[1]['v_all']
     attrib_name = 'Start.@min_cc_id' if use_weak_cc else 'v_all.@sum_cid'
     summ = summarise_country_groups_from_query(all_nodes, attrib_name)
-    print('Singletons', summ['singletons'])
-    print('Communities:')
-    for c in summ['communities']:
-        print(c)
+
+    if verbose:
+        print('Singletons', summ['singletons'])
+        print('Communities:')
+        for c in summ['communities']:
+            print(c)
+    
+    return summ

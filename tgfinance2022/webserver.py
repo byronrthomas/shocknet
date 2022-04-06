@@ -35,5 +35,11 @@ def reachable():
     print('Received JSON data: ', param_data)
     return jsonify(shocks.run_affected_countries_query(conn, **param_data))
 
+@api.route('/communities', methods=['POST'])
+def communities():
+    param_data = request.get_json()
+    print('Received JSON data: ', param_data)
+    return jsonify(shocks.find_country_partitions(conn, **param_data))
+
 if __name__ == '__main__':
     api.run() 

@@ -1,5 +1,5 @@
 CREATE QUERY tg_scc (SET<STRING> v_type, SET<STRING> e_type, SET<STRING> rev_e_type,
-  INT top_k_dist, INT output_limit, INT max_iter = 500, INT iter_wcc = 5, BOOL print_accum = TRUE, STRING result_attr= "", STRING file_path="")  SYNTAX V1 { 
+  INT top_k_dist, INT output_limit, INT max_iter = 500, INT iter_wcc = 5, BOOL print_accum = TRUE, STRING result_attr= "", STRING file_path="") FOR GRAPH ecomonic_links  SYNTAX V1 { 
     //INT iter_end_trim = 3
 
 // NOTE: taken from TigerGraph In-Database Graph Data Science Algorithm Library 

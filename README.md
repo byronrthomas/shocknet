@@ -6,6 +6,9 @@
 * Ensure any queries that have been loaded to graphDB are loadable fresh from code
 * Try and avoid a new user needing to make a secret
 
+## Limitations of model
+* Doesn't explicitly call out the obvious shock, e.g. "if no petrol products from gulf, then no petrol products on sale for public" - it's more focused on how shocks create other shocks.
+
 ## About
 
 TODO

@@ -1,4 +1,6 @@
+from itertools import count
 import json
+from tokenize import group
 import tgfinance2022.graph_db as db
 import urllib.parse
 
@@ -61,3 +63,45 @@ def condition_graph_fixed_point(conn, input_thresh, import_thresh, critical_ind_
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/condition_graph.gsql'), params)
     print(res)
     print(conn.getEdgeStats('*'))
+
+def summarise_country_groups_from_query(all_nodes, group_attrib_name):
+    country_nodes = [c for c in all_nodes if c['v_type'] == 'country']
+    print(f'Got {len(country_nodes)} countries - should be 134?')
+    by_group_num = {}
+    for c in country_nodes:
+        group_num = c['attributes'][group_attrib_name]
+        if not group_num in by_group_num:
+            by_group_num[group_num] = []
+        by_group_num[group_num].append(c['v_id'])
+
+    singletons = [g[0] for g in by_group_num.values() if len(g) == 1]
+    communities = [g for g in by_group_num.values() if len(g) > 1]
+    print(f'Got {len(singletons)} singletons and {len(communities)} communities')
+    return {
+        'singletons': singletons,
+        'communities': communities
+    }
+
+def find_country_partitions(conn, use_weak_cc=True, additional_params_string=''):
+    assert_conditioned(conn)
+    v_type_params = 'v_type=country&v_type=producer'
+    e_type_params = 'e_type=trade_shock&e_type=critical_industry_of&e_type=has_industry&e_type=production_shock'
+    rev_e_type_params = 'rev_e_type=REV_trade_shock&rev_e_type=REV_critical_industry_of&rev_e_type=REV_has_industry&rev_e_type=REV_production_shock'
+    common_params = f'{v_type_params}&{e_type_params}&output_limit=10000'
+    query_code_path = 'resources/gsql_queries/from_tg_algo_lib/tg_wcc.gsql' if use_weak_cc else 'resources/gsql_queries/from_tg_algo_lib/tg_scc.gsql'
+    params = common_params
+    if not use_weak_cc:
+        params = f'{params}&{rev_e_type_params}&top_k_dist=0'
+    if additional_params_string:
+        params = f'{params}&{additional_params_string}'
+
+    print('DEBUG - running with params string = ', params)
+    res = conn.runInstalledQuery('tg_wcc' if use_weak_cc else 'tg_scc', params)
+
+    all_nodes = res[2]['Start'] if use_weak_cc else res[1]['v_all']
+    attrib_name = 'Start.@min_cc_id' if use_weak_cc else 'v_all.@sum_cid'
+    summ = summarise_country_groups_from_query(all_nodes, attrib_name)
+    print('Singletons', summ['singletons'])
+    print('Communities:')
+    for c in summ['communities']:
+        print(c)

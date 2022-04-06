@@ -114,11 +114,20 @@ create graph {GRAPHNAME} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX},
     config['SECRET'] = secret
     replace_in_config_file('SECRET', secret)
 
+def install_queries(config, query_paths):
+    conn = initDbWithToken(config)
+    print(conn.gsql(f'USE GRAPH {GRAPHNAME}'))
+    for p in query_paths:
+        print('Installing code from ', p)
+        res = conn.gsql(read_resource(p))
+        print(res)
+    print('All requested queries installed')
+
 def check_args():
     opts = [opt for opt in sys.argv[1:] if opt.startswith("-")]
     args = [arg for arg in sys.argv[1:] if not arg.startswith("-")]
 
-    KNOWN_OPTS = {'--regen-schema': 'regen-schema', '--drop-all': 'drop-all'}
+    KNOWN_OPTS = {'--regen-schema': 'regen-schema', '--drop-all': 'drop-all', '--install-standard-queries': 'install-standard-queries'}
     rejected = args
     rejected.extend([r for r in opts if r not in KNOWN_OPTS])
     if len(rejected):
@@ -147,12 +156,24 @@ def replace_in_config_file(key, value):
 def get_condition_info(conn):
     return conn.getVertices(CONDITION_VERTEX)
 
+STANDARD_QUERIES = [
+    'resources/gsql_queries/from_tg_algo_lib/tg_scc.gsql',
+    'resources/gsql_queries/from_tg_algo_lib/tg_wcc.gsql',
+]
+
 if __name__ == "__main__":
     args = check_args()
-    if args['regen-schema']:
-        try:
-            recreate_schema(args['drop-all'], make_config())
-        except BaseException as err:
-            print(f"Unexpected issue:\n\t{err} ({type(err)})")
+    if [a for a in args if args[a]]:
+        if args['regen-schema']:
+            try:
+                recreate_schema(args['drop-all'], make_config())
+            except BaseException as err:
+                print(f"Unexpected issue:\n\t{err} ({type(err)})")
+
+        if args['install-standard-queries']:
+            try:
+                install_queries(make_config(), STANDARD_QUERIES)
+            except BaseException as err:
+                print(f"Unexpected issue:\n\t{err} ({type(err)})")
     else:
         raise Exception("Nothing to do!")

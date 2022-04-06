@@ -6,6 +6,17 @@ INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, IN
     ACCUM DELETE(e);
     Result = SELECT p1 FROM producer:p1 -(critical_industry_of>:e)- country:c
     ACCUM DELETE(e);
+    Result = SELECT p1 FROM country:c -(has_industry>:e)- producer:p1
+    ACCUM DELETE(e);
+    Result = SELECT p1 FROM producer:p1 -(<REV_trade_shock:e)- producer:p2
+    ACCUM DELETE(e);
+    Result = SELECT p1 FROM producer:p1 -(<REV_production_shock:e)- producer:p2
+    ACCUM DELETE(e);
+    Result = SELECT p1 FROM producer:p1 -(<REV_critical_industry_of:e)- country:c
+    ACCUM DELETE(e);
+    Result = SELECT p1 FROM country:c -(<REV_has_industry:e)- producer:p1
+    ACCUM DELETE(e);
+
     C2 = {condition_info.*};
     DELETE c FROM C2:c;
   
@@ -15,17 +26,28 @@ INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, IN
       FROM producer:p1 -(uses_domestic_input>:i)- producer:p2
       // WHERE c.@visited == FALSE
       WHERE i.pct_of_producer_input >= input_pct_thresh
-      ACCUM INSERT INTO production_shock VALUES(p1, p2, i.pct_of_producer_input);
+      ACCUM INSERT INTO production_shock VALUES(p1, p2, i.pct_of_producer_input, i.market_val_dollars),
+      INSERT INTO REV_production_shock VALUES(p2, p1, i.pct_of_producer_input, i.market_val_dollars);
   
     intl_producers = SELECT p1
       FROM producer:p1 -(trades>:t)- importer:imp -(uses_imported_input>:i)- producer:p2
       WHERE i.pct_of_producer_input >= input_pct_thresh AND t.pct_of_imported_product_total >= import_pct_thresh
-      ACCUM INSERT INTO trade_shock VALUES(p1, p2, i.pct_of_producer_input, t.pct_of_imported_product_total);
+      ACCUM INSERT INTO trade_shock VALUES(p1, p2, i.pct_of_producer_input, t.pct_of_imported_product_total, i.market_val_dollars),
+      INSERT INTO REV_trade_shock VALUES(p2, p1, i.pct_of_producer_input, t.pct_of_imported_product_total, i.market_val_dollars);
   
     critical_inds = SELECT p
       FROM producer:p -(located_in)- country:c
       WHERE p.pct_of_national_output >= national_output_thresh
-      ACCUM INSERT INTO critical_industry_of VALUES(p, c, p.pct_of_national_output);
+      ACCUM INSERT INTO critical_industry_of VALUES(p, c, p.pct_of_national_output, p.market_val_dollars),
+      INSERT INTO REV_critical_industry_of VALUES(c, p, p.pct_of_national_output, p.market_val_dollars);
+
+    significant_inds = SELECT c
+      FROM producer:p -(located_in)- country:c
+      // Include only producers with an output > 1M dollars (10000 in fixed point values)
+      WHERE p.market_val_dollars >= 10000
+      ACCUM INSERT INTO has_industry VALUES(c, p, p.pct_of_national_output, p.market_val_dollars),
+      INSERT INTO REV_has_industry VALUES(p, c, p.pct_of_national_output, p.market_val_dollars);
+  
     PRINT "Edge insertions finished";
   
     INSERT INTO condition_info VALUES(1, description);

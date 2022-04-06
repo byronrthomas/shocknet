@@ -7,15 +7,22 @@ PRODUCT_VERTEX='product'
 IMPORTER_VERTEX='importer'
 PRODUCER_VERTEX='producer'
 LOCATION_EDGE='located_in'
-CRITICAL_INDUSTRY_EDGE='critical_industry_of'
 PRODUCTION_EDGE='produces'
 TRADE_EDGE='trades'
 DOMESTIC_INPUT_EDGE='uses_domestic_input'
 IMPORTED_INPUT_EDGE='uses_imported_input'
 GRAPHNAME='ecomonic_links'
+CONDITION_VERTEX='condition_info'
+# Conditioned edges
 PRODUCTION_SHOCK_EDGE='production_shock'
 TRADE_SHOCK_EDGE='trade_shock'
-CONDITION_VERTEX='condition_info'
+HAS_INDUSTRY_EDGE='has_industry'
+CRITICAL_INDUSTRY_EDGE='critical_industry_of'
+# REVERSEd conditioned edges
+REV_PRODUCTION_SHOCK_EDGE='REV_production_shock'
+REV_TRADE_SHOCK_EDGE='REV_trade_shock'
+REV_HAS_INDUSTRY_EDGE='REV_has_industry'
+REV_CRITICAL_INDUSTRY_EDGE='REV_critical_industry_of'
 
 def upsert_nodes(conn, vertex_type, nodes):
     print(f"Asked to upsert {len(nodes)} {vertex_type} vertices")
@@ -83,7 +90,6 @@ create vertex {PRODUCER_VERTEX} (primary_id producer_id STRING, country_code STR
 create vertex {CONDITION_VERTEX} (primary_id id UINT, condition_description STRING)
 
 create undirected edge {LOCATION_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
-create directed edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT)
 create undirected edge {PRODUCTION_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCT_VERTEX})
 
 create directed edge {DOMESTIC_INPUT_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, market_val_dollars INT, pct_of_producer_input INT, pct_of_producer_output INT)
@@ -92,11 +98,17 @@ create directed edge {IMPORTED_INPUT_EDGE} (from {IMPORTER_VERTEX}, to {PRODUCER
 
 create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX}, market_val_dollars INT, pct_of_imported_product_total INT, pct_of_producer_output INT)
 
-create directed edge {PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT)
+create directed edge {PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, market_val_dollars INT)
+create directed edge {TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT, market_val_dollars INT)
+create directed edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
+create directed edge {HAS_INDUSTRY_EDGE} (from {COUNTRY_VERTEX}, to {PRODUCER_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
 
-create directed edge {TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT)
+create directed edge {REV_PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, market_val_dollars INT)
+create directed edge {REV_TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT, market_val_dollars INT)
+create directed edge {REV_CRITICAL_INDUSTRY_EDGE} (from {COUNTRY_VERTEX}, to {PRODUCER_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
+create directed edge {REV_HAS_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
 
-create graph {GRAPHNAME} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE}, {CRITICAL_INDUSTRY_EDGE}, {TRADE_SHOCK_EDGE}, {PRODUCTION_SHOCK_EDGE}, {CONDITION_VERTEX})
+create graph {GRAPHNAME} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE},{CONDITION_VERTEX}, {CRITICAL_INDUSTRY_EDGE}, {TRADE_SHOCK_EDGE}, {PRODUCTION_SHOCK_EDGE}, {HAS_INDUSTRY_EDGE}, {REV_CRITICAL_INDUSTRY_EDGE}, {REV_TRADE_SHOCK_EDGE}, {REV_PRODUCTION_SHOCK_EDGE}, {REV_HAS_INDUSTRY_EDGE})
 ''', options=[]))
     secret = conn.createSecret('pytigeraccess')
     config['SECRET'] = secret

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {prepareCountryData, initMap, prepareLinkData, mapShocks} from './map';
+import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './map';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -17,8 +17,12 @@ function handleRunAnalysisClick() {
     if ( document.getElementById("optionsRadiosSpread").checked ) {
         console.log("Spread analysis selected");
         runShockReach(['mex-oil', 'usa-oil']);
-    } else if (document.getElementById("optionsRadiosOther").checked) {
-        console.log("Other analysis selected");
+    } else if (document.getElementById("optionsRadiosStrongGroups").checked) {
+        console.log("Strong group analysis selected");
+        runShockGroups(false);
+    } else if (document.getElementById("optionsRadiosWeakGroups").checked) {
+        console.log("Weak group analysis selected");
+        runShockGroups(true);
     } else {
         console.log("WARN: don't know how to run...");
     }
@@ -46,3 +50,21 @@ function runShockReach(producers, /*handler*/) {
         });    
 }
 
+
+function runShockGroups(useWeakAnalysis) {
+    console.log("Running shock group analysis for", useWeakAnalysis);
+    axInstance.post(
+        '/communities', {
+            use_weak_cc: useWeakAnalysis
+        })
+        .then(function (response)
+        {
+            console.log('Got a successful response');
+            console.log(response['data']);
+            mapShockGroups(mapControl, response['data']);
+        })
+        .catch(function (error) 
+        {
+            console.log('Error!!!', error);
+        });    
+}

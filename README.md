@@ -5,6 +5,8 @@
 * Ensure any dataframes etc required to run the code are in this repo (i.e. no paths to projects or other repos files in code..)
 * Ensure any queries that have been loaded to graphDB are loadable fresh from code
 * Try and avoid a new user needing to make a secret
+* Add some licensing attribution onto page
+* Stick a tigergaph attrib on page
 
 ## Limitations of model
 * Doesn't explicitly call out the obvious shock, e.g. "if no petrol products from gulf, then no petrol products on sale for public" - it's more focused on how shocks create other shocks.

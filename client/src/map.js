@@ -429,6 +429,33 @@ function industryShockAsText({name, gdp_pct}) {
   return `${name} (${gdp_pct}% of GDP)`;
 }
 
+function countryPopupShockTransfer(geography, data) {
+  return '<div class="hoverinfo">' + 
+    (data.nameOverride ? 
+      `<strong>${data.nameOverride} Region</strong> (includes ${geography.properties.name})` : 
+      `<strong>${geography.properties.name}</strong>`) + 
+    '<br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + '</div>';
+}
+function countryPopupShockGrouping(geography, data) {
+  if (data.communityDescription) {
+    return '<div class="hoverinfo">' + 
+    (data.nameOverride ? 
+      `<strong>${data.nameOverride} Region</strong> (includes ${geography.properties.name})` : 
+      `<strong>${geography.properties.name}</strong>`) + 
+    '<br/>Belongs to the group: ' +  data.communityDescription + '</div>';
+  }
+  
+}
+
+var mode;
+const SHOCK_TRANSFER_MODE = 'SHOCK_TRANSFER';
+const SHOCK_GROUPING_MODE = 'SHOCK_GROUPING';
+function handleCountryPopup(geography, data) {
+  if (!mode) return '';
+  if (mode === SHOCK_TRANSFER_MODE) return countryPopupShockTransfer(geography, data);
+  if (mode === SHOCK_GROUPING_MODE) return countryPopupShockGrouping(geography, data);
+}
+
 export function initMap(elem) {
     // eslint-disable-next-line no-unused-vars
     var shock_map = new Datamap({
@@ -441,16 +468,11 @@ export function initMap(elem) {
           defaultFill: "#ABDDA4",
           impact: "#fc59e6",
           transfer: '#f81313',
+          isolated: '#807e7e',
         },
         geographyConfig: {
           highlightFillColor: '#0fa0fa',
-          popupTemplate: function(geography, data) {
-            return '<div class="hoverinfo">' + 
-            (data.nameOverride ? 
-              `<strong>${data.nameOverride} Region</strong> (includes ${geography.properties.name})` : 
-              `<strong>${geography.properties.name}</strong>`) + 
-            '<br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + '</div>';
-          },
+          popupTemplate: handleCountryPopup,
         },
         arcConfig: {
           popupOnHover: true,
@@ -461,6 +483,7 @@ export function initMap(elem) {
 }
 
 export function mapShocks(shock_map, affectedCountryData, sectorLinkData) {
+  mode = SHOCK_TRANSFER_MODE;
   let data = {};
   for (var affected of Object.getOwnPropertyNames(affectedCountryData)) {
     data[affected] = {
@@ -468,7 +491,7 @@ export function mapShocks(shock_map, affectedCountryData, sectorLinkData) {
       ...affectedCountryData[affected]};
   }
   console.log('Map data = ', data);
-  shock_map.updateChoropleth(data);
+  shock_map.updateChoropleth(data, {reset: true});
 
   // Arcs coordinates can be specified explicitly with latitude/longtitude,
   // or just the geographic center of the state/country.
@@ -528,6 +551,64 @@ export function mapShocks(shock_map, affectedCountryData, sectorLinkData) {
       const transferDetails = data.transfers.map(tr => `${tr.tradedCommodity} -> ${tr.producedCommodity}: [${tr.tradedCommodity}] makes up ${formatFixedPercentage(tr.pct_of_producer_input)}% of the inputs to [${tr.producedCommodity}] in ${lbl}`);
       return '<div class="hoverinfo"><strong>Local shock transfer in ' + lbl +
         '</strong><br>' + transferDetails.join('<br>') + '</div>';
+    }
+  });
+
+}
+
+// eslint-disable-next-line no-unused-vars
+function distinctColor(colorNum, colors){
+  if (colors < 1) colors = 1; // defaults to one color - avoid divide by zero
+  return "hsl(" + (colorNum * (360 / colors) % 360) + ",100%,50%)";
+}
+
+export function mapShockGroups(shock_map, {communities, singletons}, weak_groups) {
+  mode = SHOCK_GROUPING_MODE;
+  const communityCount = communities.length;
+  var i = 0;
+  let data = {};
+  const wholeWorldGroup = singletons.length === 0 && communities.length === 1;
+  for (var community of communities) {
+      const commColor = distinctColor(i++, communityCount);
+      const communityDescription = 
+        wholeWorldGroup ?
+        "all countries analysed" :
+        community.map(gr => `${formatGraphRegion(gr).join(', ')}`).join(', ');
+      for (var graphRegion of community) {
+        for (var mapCountry of formatGraphRegion(graphRegion)) {
+          data[mapCountry] = {
+            "fillColor": commColor,
+            "communityDescription": communityDescription,
+          };
+        }
+      }
+  }
+  
+  console.log('Map data = ', data);
+  shock_map.updateChoropleth(data, {reset: true});
+
+  shock_map.arc2([]);
+  
+  const bubbles = [];
+  const defaultBubble = {
+    radius: 2,
+    fillKey: 'isolated'
+  };
+  for (graphRegion of singletons) {
+    for (mapCountry of formatGraphRegion(graphRegion)) {
+      bubbles.push({
+        centered: mapCountry, 
+        ...defaultBubble});
+    }
+  }
+  console.log('bubbles', bubbles);
+  shock_map.bubbles(bubbles, {
+    popupTemplate: function(geo, data) {
+      const lbl = data.countryOverride ?? codeToCountry(data.centered);
+      return '<div class="hoverinfo"><strong>' + lbl +
+        '</strong> is isolated from shocks under these assumptions<br>' + 
+        (weak_groups ? "it neither receives nor transfers any shocks with others"
+         : "it may receive or transfer a shock to others but it is does not do both") + '</div>';
     }
   });
 

@@ -22,7 +22,7 @@ def conditions():
         print('Received JSON data: ', param_data)
         return jsonify(shocks.condition_graph_fixed_point(conn, **param_data))
     else:
-        return jsonify(db.get_condition_info(conn))
+        return jsonify(shocks.current_condition(conn))
 
 ## Rationale: We want this webserver to be a super skinny layer over the raw
 ## Python API (don't over-decouple it). We wouldn't use a webserver if we

@@ -9,7 +9,7 @@ def current_condition(conn):
     if res and len(res) > 0:
         if len(res) > 1:
             raise Exception(f"Bad condition info -- only expected one result not {len(res)}")
-        return res[0]['attributes']['condition_description']
+        return json.loads(res[0]['attributes']['condition_description'])
 
 def assert_conditioned(conn):
     res = current_condition(conn)
@@ -55,6 +55,9 @@ def run_affected_countries_query(conn, supply_shocked_producers):
 def format_percentage(fixed):
     return f'{fixed / 10000.0}%'
 
+def set_condition(conn, **params):
+    db.upsert_nodes(conn, db.CONDITION_VERTEX, [(1, {'condition_description': json.dumps(params)})])
+
 def condition_graph_fixed_point(conn, input_thresh, import_thresh, critical_ind_thresh):
     # description = f'input_threshold = {format_percentage(input_thresh)} | import_threshold = {format_percentage(import_thresh)} | critical_industry_threshold = {format_percentage(critical_ind_thresh)}'
     description = f'inputs_{input_thresh}_imports_{import_thresh}_critical_ind_{critical_ind_thresh}'
@@ -62,8 +65,11 @@ def condition_graph_fixed_point(conn, input_thresh, import_thresh, critical_ind_
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/condition_graph.gsql'), params)
     print(res)
-    res = db.upsert_nodes(conn, db.CONDITION_VERTEX, [(1, {'condition_description': description})])
-    print(conn.getEdgeStats('*'))
+    set_condition(conn, input_thresh=input_thresh, import_thresh=import_thresh, critical_ind_thresh=critical_ind_thresh)
+    try:
+        print(conn.getEdgeStats('*'))
+    except BaseException as err:
+        print('WARN: Unable to get stats:', err)
 
 def summarise_country_groups_from_query(all_nodes, group_attrib_name):
     country_nodes = [c for c in all_nodes if c['v_type'] == 'country']

@@ -49,8 +49,5 @@ INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, IN
       INSERT INTO REV_has_industry VALUES(p, c, p.pct_of_national_output, p.market_val_dollars);
   
     PRINT "Edge insertions finished";
-  
-    INSERT INTO condition_info VALUES(1, description);
-  
-    PRINT "Condition info written";
+
 }

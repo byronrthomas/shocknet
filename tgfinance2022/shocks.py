@@ -58,10 +58,11 @@ def format_percentage(fixed):
 def condition_graph_fixed_point(conn, input_thresh, import_thresh, critical_ind_thresh):
     # description = f'input_threshold = {format_percentage(input_thresh)} | import_threshold = {format_percentage(import_thresh)} | critical_industry_threshold = {format_percentage(critical_ind_thresh)}'
     description = f'inputs_{input_thresh}_imports_{import_thresh}_critical_ind_{critical_ind_thresh}'
-    params = f'input_pct_thresh={input_thresh}&import_pct_thresh={import_thresh}&national_output_thresh={critical_ind_thresh}&description={description}'
+    params = f'input_pct_thresh={input_thresh}&import_pct_thresh={import_thresh}&national_output_thresh={critical_ind_thresh}'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/condition_graph.gsql'), params)
     print(res)
+    res = db.upsert_nodes(conn, db.CONDITION_VERTEX, [(1, {'condition_description': description})])
     print(conn.getEdgeStats('*'))
 
 def summarise_country_groups_from_query(all_nodes, group_attrib_name):

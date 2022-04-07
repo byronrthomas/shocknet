@@ -33,13 +33,13 @@ def remove_edges_not_on_destination_path(links, end_ids):
     
     return included_edges
 
-def run_affected_countries_query(conn, supply_shocked_producers):
+def run_affected_countries_query(conn, supply_shocked_vertices):
     assert_conditioned(conn)
     cut_params = [
-        f'starting_nodes[{i}]={p_id}&starting_nodes[{i}].type=producer'
-        for i, p_id in enumerate(supply_shocked_producers)]
+        f'starting_nodes[{i}]={v["v_id"]}&starting_nodes[{i}].type={v["v_type"]}'
+        for i, v in enumerate(supply_shocked_vertices)]
     cut_params = '&'.join(cut_params)
-    params = f'{cut_params}&allowed_edge_types={db.CRITICAL_INDUSTRY_EDGE}&allowed_edge_types={db.TRADE_SHOCK_EDGE}&allowed_edge_types={db.PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&final_vertex_types={db.COUNTRY_VERTEX}&report_links=TRUE'
+    params = f'{cut_params}&allowed_edge_types={db.CRITICAL_INDUSTRY_EDGE}&allowed_edge_types={db.HAS_INDUSTRY_EDGE}&allowed_edge_types={db.TRADE_SHOCK_EDGE}&allowed_edge_types={db.PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&final_vertex_types={db.COUNTRY_VERTEX}&report_links=TRUE'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/bfs_reachability.gsql'), params)
     edges = res[1]['@@allEdges']

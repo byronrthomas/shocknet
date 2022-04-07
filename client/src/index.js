@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './map';
+import {initAssumptionsInput, getAssumptionInputState} from './user_input/assumptionInputs';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -8,6 +9,34 @@ const axInstance = axios.create({
     // Match TG timeout at least
     timeout: 60000
   });
+
+  initAssumptionsInput(
+    document.getElementById("assumptionInputPct"),
+    document.getElementById("assumptionImportPct"),
+    document.getElementById("assumptionCriticalIndPct"));
+
+function handleSubmitAssumptions() {
+    console.log('Update model assumptions clicked');
+    const assumptionState = getAssumptionInputState();
+    if (assumptionState.errors) {
+        alert(`Cannot update:\n${assumptionState.errors.join('\n')}`);
+    } else {
+        const data = assumptionState.success;
+        console.log('About to update model with assumptions =', data);
+        axInstance.post(
+            '/conditions', data)
+            .then(function ()
+            {
+                console.log('Got a successful response');
+                alert('Successfully updated model assumptions');
+            })
+            .catch(function (error) 
+            {
+                console.log('Error!!!', error);
+            });   
+    }
+}
+document.getElementById("btnUpdateAssumptions").addEventListener('click', handleSubmitAssumptions);
 
 const mapElem = document.getElementById("map");
 const mapControl = initMap(mapElem);

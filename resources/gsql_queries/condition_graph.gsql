@@ -1,4 +1,4 @@
-INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, INT national_output_thresh, STRING description) FOR GRAPH ecomonic_links { 
+INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, INT national_output_thresh) FOR GRAPH economic_links { 
     // Clear edges out before inserting
     Result = SELECT p1 FROM producer:p1 -(trade_shock>:e)- producer:p2
     ACCUM DELETE(e);

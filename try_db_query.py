@@ -3,7 +3,7 @@ import pyTigerGraph as tg
 from dotenv import dotenv_values
 
 config = dotenv_values('.env')
-conn = tg.TigerGraphConnection(host=config['HOSTNAME'], username=config['USERNAME'], password=config['PASSWORD'], graphname='ecomonic_links')
+conn = tg.TigerGraphConnection(host=config['HOSTNAME'], username=config['USERNAME'], password=config['PASSWORD'], graphname='economic_links')
 conn.getToken(config['SECRET'])
 res = conn.runInstalledQuery('supply_cut2', 'cuts=2707')
 rlinks = res[0]['@@links']

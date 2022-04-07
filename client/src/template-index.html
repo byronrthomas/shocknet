@@ -58,22 +58,13 @@
       <div class="page-header">
         <h2>2. Setup an analysis under these assumptions</h2>
       </div>
-      <!-- <div class="panel panel-info">
-        <div class="panel-heading">
-          <h3 class="panel-title">Set your assumptions</h3>
-        </div>
-        <div class="panel-body">
-          TODO: editable - inputs_100000_imports_500000_critical_ind_100000
-        </div>
-      </div> -->
-
-      <div class="panel panel-warning">
-        <div class="panel-heading">
-          <h3 class="panel-title">Choose your analysis</h3>
-        </div>
-        <div class="panel-body">
-          <div class="row">
-            <div class="col-sm-4">
+      <div class="row">
+        <div class="col-sm-4">
+          <div class="panel panel-info">
+            <div class="panel-heading">
+              <h3 class="panel-title">Choose your analysis</h3>
+            </div>
+            <div class="panel-body">
               <div class="radio">
                 <label>
                   <input type="radio" name="optionsRadios" id="optionsRadiosSpread" value="shockReachability" checked>
@@ -83,13 +74,13 @@
               <div class="radio">
                 <label>
                   <input type="radio" name="optionsRadios" id="optionsRadiosStrongGroups" value="otherAnalysis">
-                  Country groups that pass shocks (everybody in group can give AND receive shocks to everybody else)
+                  Country groups that transmit shocks (everybody in group can give AND receive shocks to everybody else)
                 </label>
               </div>
               <div class="radio">
                 <label>
                   <input type="radio" name="optionsRadios" id="optionsRadiosWeakGroups" value="otherAnalysis">
-                  Country groups that pass shocks (everybody in group can give OR receive shocks to everybody else)
+                  Country groups that transmit shocks (everybody in group can give OR receive shocks to everybody else)
                 </label>
               </div>
               <div class="radio disabled">
@@ -100,10 +91,55 @@
               </div>
               <button class="btn btn-large btn-warning" id="btnRunAnalysis">Do Analysis</button>
             </div>
-            <div class="col-sm-8">
-              <p>Stuff goes in here</p>
-            </div>
+            
           </div>
+          
+        </div>
+        <div class="col-sm-8">
+          <div class="panel panel-info">
+            <div class="panel-heading">
+              <h3 class="panel-title">Analysis parameters</h3>
+            </div>
+            <div class="panel-body">
+              <div>
+                <p><strong>Select producers experience a supply shock - the model will show how the crisis spreads</strong></p>
+                <p>By <em>producer</em> we mean the entire production of a given sector in a given region, e.g. <em>The oil sector of the USA</em>. It is also possible to cut off all production from a given region, e.g. <em>An embargo on the USA.</em> The model will show how the shocks transmit from these starting points.</p>
+              </div>
+              <form class="form-inline">
+                <div class="form-group">
+                  <label for="shockedProducerRegion">Region (country)</label>
+                  <select id="shockedProducerRegion">
+                    <option>USA</option>
+                    <option>Canada</option>
+                  </select>
+                  <button class="button button-primary">Add all producers</button>
+                </div>
+                <div class="form-group">
+                  <label for="shockedProducerProduct">Producer of</label>
+                  <select id="shockedProducerProduct">
+                    <option>Oil</option>
+                    <option>Paddy rice</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <button class="button button-primary">Add regional producer</button>
+                </div>
+                <!-- <div class="checkbox">
+                  <label>
+                    <input type="checkbox"> TODO - A.N.other assumption
+                  </label>
+                </div> -->
+              </form>
+              <div>
+                <br>
+                <p><strong>Currently selected producers</strong><p>
+                <div>
+                  <ul></ul>
+                </div>
+              </div>
+            </div>
+          
+        </div>
         </div>
       </div>
 

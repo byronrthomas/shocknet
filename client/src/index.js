@@ -92,7 +92,7 @@ function handleRunAnalysisClick() {
         const shockSelection = getShockedProducerState();
         console.log('Currently selected shock state =', shockSelection);
         if (shockSelection.length > 0) {
-            runShockReach(['mex-oil', 'usa-oil']);    
+            runShockReach(shockSelection);
         } else {
             alert('You must select some starting producers to shock before analysing how the shock spreads!');
         }
@@ -109,11 +109,11 @@ function handleRunAnalysisClick() {
 
 runBtn.addEventListener('click', handleRunAnalysisClick);
 
-function runShockReach(producers, /*handler*/) {
-    console.log("Running shock reach analysis for", producers);
+function runShockReach(vertices, /*handler*/) {
+    console.log("Running shock reach analysis for", vertices);
     axInstance.post(
         '/reachable', {
-            supply_shocked_producers: producers
+            supply_shocked_vertices: vertices
         })
         .then(function (response)
         {

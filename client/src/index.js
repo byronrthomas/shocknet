@@ -1,6 +1,6 @@
 import axios from 'axios';
 import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './map';
-import {initAssumptionsInput, getAssumptionInputState} from './user_input/assumptionInputs';
+import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState} from './user_input/assumptionInputs';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -10,10 +10,25 @@ const axInstance = axios.create({
     timeout: 60000
   });
 
-  initAssumptionsInput(
+initAssumptionsInput(
     document.getElementById("assumptionInputPct"),
     document.getElementById("assumptionImportPct"),
     document.getElementById("assumptionCriticalIndPct"));
+
+function getInitialAssumptions() {
+    axInstance.get('/conditions')
+        .then(function (response)
+        {
+            console.log('Got a successful response');
+            if (response.data) {
+                setInitialAssumptionState(response.data);
+            }
+        })
+        .catch(function (error) 
+        {
+            console.log('Error!!!', error);
+        });   
+}
 
 function handleSubmitAssumptions() {
     console.log('Update model assumptions clicked');
@@ -97,3 +112,5 @@ function runShockGroups(useWeakAnalysis) {
             console.log('Error!!!', error);
         });    
 }
+
+getInitialAssumptions();

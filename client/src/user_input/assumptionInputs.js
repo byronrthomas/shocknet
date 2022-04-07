@@ -21,6 +21,17 @@ function ctrlInputToFixedNum(inp) {
     return 10000 * inp;
 }
 
+function fixedNumToCtrlInput(num) {
+    return num / 10000;
+}
+
+export function setInitialAssumptionState(state) {
+    for (var k in namesToInfo) {
+        const newVal = state[k];
+        namesToInfo[k].control.value = fixedNumToCtrlInput(newVal); 
+    }
+}
+
 
 function getCtrlInput(name) {
     const details = namesToInfo[name];

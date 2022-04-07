@@ -11,7 +11,7 @@ PRODUCTION_EDGE='produces'
 TRADE_EDGE='trades'
 DOMESTIC_INPUT_EDGE='uses_domestic_input'
 IMPORTED_INPUT_EDGE='uses_imported_input'
-GRAPHNAME='ecomonic_links'
+GRAPHNAME='economic_links'
 CONDITION_VERTEX='condition_info'
 # Conditioned edges
 PRODUCTION_SHOCK_EDGE='production_shock'

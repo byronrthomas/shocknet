@@ -18,14 +18,52 @@
         </p>
       </div>
 
-      <div class="panel panel-info">
+      <div class="page-header">
+        <h2>1. Set the shock transmission assumptions</h2>
+      </div>
+      <div class="well">
+        <p>These assumptions are used to analyse how shocks pass between countries and sectors.</p>
+        <p>Please select:
+          <ul>
+            <li>Input threshold x% - a supply shock passes from one sector to another sector, if the shocked sector is at least x% of the total inputs needed to produce the other sector's product.</li>
+            <li>Imported amount threshold y% - a supply shock passes from one country's exports of a product to another country, if the exports are at least y% of the total amount of the product imported.</li>
+            <li>Critical industry threshold z% - a country is treated as experiencing a shock if any producer is experiencing a shock, and that producer makes at z% of national output.</li>
+          </ul>
+        </p>
+        <form class="form-inline">
+          <div class="form-group">
+            <label for="assumptionInputPct">Input threshold (x%)</label>
+            <input type="number" class="form-control" id="assumptionInputPct" max=100 min=0 placeholder="10">
+          </div>
+          <div class="form-group">
+            <label for="assumptionImportPct">Imported amount threshold (y%)</label>
+            <input type="number" class="form-control" id="assumptionImportPct" max=100 min=0 placeholder="10">
+          </div>
+          <div class="form-group">
+            <label for="assumptionCriticalIndPct">Critical industry threshold (z% GDP)</label>
+            <input type="number" class="form-control" id="assumptionCriticalIndPct" max=100 min=0 placeholder="5">
+          </div>
+          <!-- <div class="checkbox">
+            <label>
+              <input type="checkbox"> TODO - A.N.other assumption
+            </label>
+          </div> -->
+        </form>
+        
+      </div>
+      <button class="btn btn-large btn-primary" id="btnUpdateAssumptions">Update model assumptions</button>
+
+      <div class="page-header">
+        <h2>2. Setup an analysis under these assumptions</h2>
+      </div>
+      <!-- <div class="panel panel-info">
         <div class="panel-heading">
           <h3 class="panel-title">Set your assumptions</h3>
         </div>
         <div class="panel-body">
           TODO: editable - inputs_100000_imports_500000_critical_ind_100000
         </div>
-      </div>
+      </div> -->
 
       <div class="panel panel-warning">
         <div class="panel-heading">

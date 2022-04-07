@@ -1,4 +1,5 @@
 import sys
+import traceback
 import pyTigerGraph as tg
 from dotenv import dotenv_values
 
@@ -168,12 +169,14 @@ if __name__ == "__main__":
             try:
                 recreate_schema(args['drop-all'], make_config())
             except BaseException as err:
+                print(traceback.format_exc())
                 print(f"Unexpected issue:\n\t{err} ({type(err)})")
 
         if args['install-standard-queries']:
             try:
                 install_queries(make_config(), STANDARD_QUERIES)
             except BaseException as err:
+                print(traceback.format_exc())
                 print(f"Unexpected issue:\n\t{err} ({type(err)})")
     else:
         raise Exception("Nothing to do!")

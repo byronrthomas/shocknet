@@ -1,4 +1,5 @@
 import json
+import traceback
 import pandas as pd
 import sys
 
@@ -234,6 +235,7 @@ if __name__ == "__main__":
     try:
         main(args)
     except BaseException as err:
+        print(traceback.format_exc())
         print(f"Unexpected issue {err} ({type(err)})")
     # print(check_args)
     

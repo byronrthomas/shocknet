@@ -1,6 +1,6 @@
 import axios from 'axios';
 import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './map';
-import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState} from './user_input/assumptionInputs';
+import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setAssumptionInfoText} from './user_input/assumptionInputs';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -15,13 +15,18 @@ initAssumptionsInput(
     document.getElementById("assumptionImportPct"),
     document.getElementById("assumptionCriticalIndPct"));
 
+const assumptionsInfoText = document.getElementById("currentAssumptionsInfo");
+var currentAssumptions;
 function getInitialAssumptions() {
     axInstance.get('/conditions')
         .then(function (response)
         {
             console.log('Got a successful response');
             if (response.data) {
+                console.log('data = ', response.data);
                 setInitialAssumptionState(response.data);
+                setAssumptionInfoText(assumptionsInfoText, response.data);
+                currentAssumptions = response.data;
             }
         })
         .catch(function (error) 
@@ -38,12 +43,21 @@ function handleSubmitAssumptions() {
     } else {
         const data = assumptionState.success;
         console.log('About to update model with assumptions =', data);
+        assumptionsInfoText.textContent = 'Updating...';
         axInstance.post(
             '/conditions', data)
             .then(function ()
             {
-                console.log('Got a successful response');
-                alert('Successfully updated model assumptions');
+                console.log('Got a successful response to condition update - request latest');
+                return axInstance.get('/conditions');
+            })
+            .then(function (response) {
+                console.log('Got a successful response to fetch current condition');
+                if (response.data) {
+                    console.log('data = ', response.data);
+                    setAssumptionInfoText(assumptionsInfoText, response.data);
+                    currentAssumptions = response.data;
+                }
             })
             .catch(function (error) 
             {
@@ -58,6 +72,10 @@ const mapControl = initMap(mapElem);
 
 const runBtn = document.getElementById("btnRunAnalysis");
 function handleRunAnalysisClick() {
+    if (!currentAssumptions) {
+        alert('You must set some model assumptions before running analyses!');
+        return;
+    }
     if ( document.getElementById("optionsRadiosSpread").checked ) {
         console.log("Spread analysis selected");
         runShockReach(['mex-oil', 'usa-oil']);

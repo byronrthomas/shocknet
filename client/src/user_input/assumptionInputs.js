@@ -64,3 +64,13 @@ export function getAssumptionInputState() {
     }
     return {success: result};
 }
+
+export function setAssumptionInfoText(textElem, data) {
+    const asText = [];
+    for (var nm in namesToInfo) {
+        asText.push(`${namesToInfo[nm].userText}: ${fixedNumToCtrlInput(data[nm])}`);
+    }
+    const infoText = asText.join('; ');
+    console.log('Attempting to set span text to be', infoText);
+    textElem.textContent = infoText;
+}

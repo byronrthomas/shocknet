@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setAssumptionInfoText} from './user_input/assumptionInputs';
+import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -14,6 +15,16 @@ initAssumptionsInput(
     document.getElementById("assumptionInputPct"),
     document.getElementById("assumptionImportPct"),
     document.getElementById("assumptionCriticalIndPct"));
+
+initShockedProducersInput(
+    {
+        regionSelect: document.getElementById("shockedProducerRegion"), 
+        productSelect: document.getElementById("shockedProducerProduct"), 
+        addWholeRegionButton: document.getElementById("shockedProducerAddRegion"),
+        addSingleProducerButton: document.getElementById("shockedProducerAddSingle"),
+        clearSelectionButton: document.getElementById("btnShockedProducerClear"),
+        currentList: document.getElementById("shockedProducersList")}
+);
 
 const assumptionsInfoText = document.getElementById("currentAssumptionsInfo");
 var currentAssumptions;
@@ -78,7 +89,13 @@ function handleRunAnalysisClick() {
     }
     if ( document.getElementById("optionsRadiosSpread").checked ) {
         console.log("Spread analysis selected");
-        runShockReach(['mex-oil', 'usa-oil']);
+        const shockSelection = getShockedProducerState();
+        console.log('Currently selected shock state =', shockSelection);
+        if (shockSelection.length > 0) {
+            runShockReach(['mex-oil', 'usa-oil']);    
+        } else {
+            alert('You must select some starting producers to shock before analysing how the shock spreads!');
+        }
     } else if (document.getElementById("optionsRadiosStrongGroups").checked) {
         console.log("Strong group analysis selected");
         runShockGroups(false);

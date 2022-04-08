@@ -2,6 +2,7 @@ import axios from 'axios';
 import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setAssumptionInfoText} from './user_input/assumptionInputs';
 import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
+import {initParamsCardSwitcher} from './user_input/paramsCardSwitcher';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -147,5 +148,15 @@ function runShockGroups(useWeakAnalysis) {
             console.log('Error!!!', error);
         });    
 }
+
+
+initParamsCardSwitcher({
+    spreadCard: document.getElementById('paramsCardShockSpread'),
+    strongGroupsCard: document.getElementById('paramsCardStrongGroups'),
+    weakGroupsCard: document.getElementById('paramsCardWeakGroups'),
+    spreadInput: document.getElementById('optionsRadiosSpread'),
+    weakGroupsInput: document.getElementById('optionsRadiosWeakGroups'),
+    strongGroupsInput: document.getElementById('optionsRadiosStrongGroups'),
+});
 
 getInitialAssumptions();

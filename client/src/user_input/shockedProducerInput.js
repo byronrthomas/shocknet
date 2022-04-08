@@ -34,6 +34,7 @@ function doSelectionClear() {
 function addLi(userText) {
     const li = document.createElement('li');
     li.textContent = userText;
+    li.setAttribute("class", "list-group-item");
     state.currentList.appendChild(li);
 }
 

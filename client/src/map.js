@@ -178,12 +178,12 @@ function handleArcs (layer, data, options) {
 
             if (typeof datum.origin === "string") {
               switch (datum.origin) {
-                   case "CAN":
-                       originXY = self.latLngToXY(56.624472, -114.665293);
-                       break;
-                   case "CHL":
-                       originXY = self.latLngToXY(-33.448890, -70.669265);
-                       break;
+                  //  case "CAN":                     
+                  //      originXY = self.latLngToXY(56.624472, -114.665293);
+                  //      break;
+                  //  case "CHL":
+                  //      originXY = self.latLngToXY(-33.448890, -70.669265);
+                  //      break;
                    case "HRV":
                        originXY = self.latLngToXY(45.815011, 15.981919);
                        break;
@@ -199,9 +199,9 @@ function handleArcs (layer, data, options) {
                    case "NOR":
                        originXY = self.latLngToXY(59.913869, 10.752245);
                        break;
-                   case "USA":
-                       originXY = self.latLngToXY(41.140276, -100.760145);
-                       break;
+                  //  case "USA":
+                  //      originXY = self.latLngToXY(41.140276, -100.760145);
+                  //      break;
                    case "VNM":
                        originXY = self.latLngToXY(21.027764, 105.834160);
                        break;
@@ -214,12 +214,12 @@ function handleArcs (layer, data, options) {
 
             if (typeof datum.destination === 'string') {
               switch (datum.destination) {
-                    case "CAN":
-                        destXY = self.latLngToXY(56.624472, -114.665293);
-                        break;
-                    case "CHL":
-                        destXY = self.latLngToXY(-33.448890, -70.669265);
-                        break;
+                    // case "CAN":
+                    //     destXY = self.latLngToXY(56.624472, -114.665293);
+                    //     break;
+                    // case "CHL":
+                    //     destXY = self.latLngToXY(-33.448890, -70.669265);
+                    //     break;
                     case "HRV":
                         destXY = self.latLngToXY(45.815011, 15.981919);
                         break;
@@ -235,9 +235,9 @@ function handleArcs (layer, data, options) {
                     case "NOR":
                         destXY = self.latLngToXY(59.913869, 10.752245);
                         break;
-                    case "USA":
-                        destXY = self.latLngToXY(41.140276, -100.760145);
-                        break;
+                    // case "USA":
+                    //     destXY = self.latLngToXY(41.140276, -100.760145);
+                    //     break;
                     case "VNM":
                         destXY = self.latLngToXY(21.027764, 105.834160);
                         break;

@@ -1,6 +1,5 @@
-from itertools import count
+from importlib.resources import path
 import json
-from tokenize import group
 import tgfinance2022.graph_db as db
 import urllib.parse
 
@@ -16,41 +15,134 @@ def assert_conditioned(conn):
     if not res:
         raise Exception("Not yet projected the graph to a conditioned form - cannot interact with shock info")
 
-def remove_edges_not_on_destination_path(links, end_ids):
-    dest_set = set(end_ids)
-    included_edges = []
-    processable_edges = [link for link in links]
-    
-    while True:
-        to_add = [e for e in processable_edges if e["to_id"] in dest_set]
-        if len(to_add) == 0:
-            break
+def dedupe_edges_from_paths(paths):
+    added_edges = set()
+    result = []
+    for path in paths:
+        for edge in path:
+            edge_desc = f"{edge['from_id']}-{edge['to_id']}"
+            if edge_desc not in added_edges:
+                result.append(edge)
+                added_edges.add(edge_desc)
+    return result
 
-        for e in to_add:
-            processable_edges.remove(e)
-            dest_set.add(e["from_id"])
-            included_edges.append(e)
+def calculate_all_paths(edges, starting_ids, end_ids):
+    edges_by_source = {}
+    for e in edges:
+        src_id = e['from_id']
+        if src_id not in edges_by_source:
+            edges_by_source[src_id] = []
+        edges_by_source[src_id].append(e)
     
-    return included_edges
+    finished_paths = []
+    paths_to_extend = [[{'to_id': start}] for start in starting_ids]
+    while paths_to_extend:
+        # print(f'Currently got {len(paths_to_extend)} to extend')
+        next_to_extend = []
+        for path in paths_to_extend:
+            out_edges = edges_by_source.pop(path[-1]['to_id'], None)
+            if out_edges:
+                # print(f'Found {len(out_edges)} edges leading from end of path {path[-1]["to_id"]}')
+                for e in out_edges:
+                    new_path = path.copy()
+                    new_path.append(e)
+                    next_to_extend.append(new_path)
+            else:
+                # print(f'No edges leading from end of path {path[-1]["to_id"]} - considering to be finished')
+                finished_paths.append(path)
+        paths_to_extend = next_to_extend
+
+    # Finally filter to those ending where we wanted
+    # print(f'Main loop done - found {len(finished_paths)} finished paths')
+    end_ids_set = set(end_ids)
+    # Drop the dummy edge from the start of the path too
+    return [path[1:] for path in finished_paths if path[-1]['to_id'] in end_ids_set]
+
+
+def fetch_neighbours(conn, vertices, edge_type):
+    params = [
+        f'fromVertices[{i}]={v["v_id"]}&fromVertices[{i}].type={v["v_type"]}'
+        for i, v in enumerate(vertices)]
+    params = f'{"&".join(params)}&edgeType={edge_type}'
+    print('DEBUG: params =', params)
+    res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/fetch_neighbours.gsql'), params)
+    return res[0]['DestVertices']
+
+def check_path_ends(all_paths, end_ids):
+    end_id_set = set(end_ids)
+    path_ends = {path[-1]['to_id'] for path in all_paths}
+    if end_id_set != path_ends:
+        print('ERROR: path ends does not match expected')
+        print('ERROR: In expected but missing from paths', end_id_set.difference(path_ends))
+        print('ERROR: in paths, but not in expected', path_ends.difference(end_id_set))
+        raise Exception('Issue in reachable processing - path ends not matching reached countries')
+
+def check_path_starts(all_paths, start_ids):
+    start_id_set = set(start_ids)
+    path_starts = {path[0]['from_id'] for path in all_paths}
+    if not start_id_set.issuperset(path_starts):
+        print('ERROR: path starts does not match expected (should be a subset of expected - as it is possible to not find a path from a requested starting point)')
+        print('ERROR: In expected but missing from paths', start_id_set.difference(path_starts))
+        print('ERROR: in paths, but not in expected', path_starts.difference(start_id_set))
+        raise Exception('Issue in reachable processing - path starts not matching expected starts')
+
+def check_path_well_formed(path):
+    if path:
+        target = path[0]['to_id']
+        rem_path = path[1:]
+        while rem_path:
+            if target != rem_path[0]['from_id']:
+                raise Exception(f'Issue in reachable processing - path jumps from {target} to {rem_path[0]["from_id"]} in {path}')
+            target = rem_path[0]['to_id']
+            rem_path = rem_path[1:]
+
+
+def sanity_check_paths(all_paths, start_ids, end_ids):
+    check_path_ends(all_paths, end_ids)
+    check_path_starts(all_paths, start_ids)
+    for path in all_paths:
+        check_path_well_formed(path)
+    
+
 
 def run_affected_countries_query(conn, supply_shocked_vertices):
     assert_conditioned(conn)
+
+    ## NEED TO SORT OUT SOURCE COUNTRIES FIRST
+    country_vertices = [v for v in supply_shocked_vertices if v["v_type"] == 'country']
+    print(f'Asked to resolve {len(country_vertices)} countries')
+    producer_vertices = [v for v in supply_shocked_vertices if v["v_type"] == 'producer']
+    print(f'Also given {len(producer_vertices)} producers')
+    if len(country_vertices) > 0:
+        producer_vertices.extend(fetch_neighbours(conn, country_vertices, db.HAS_INDUSTRY_EDGE))
+    print(f'Gives {len(producer_vertices)} starting vertices total')
+    if len([v for v in producer_vertices if v["v_type"] != 'producer']) > 0:
+        print('ERROR: got some bad vertices', [v for v in producer_vertices if v["v_type"] != 'producer'])
+        raise Exception("Cannot handle vertices that aren't producers!!")
     cut_params = [
-        f'starting_nodes[{i}]={v["v_id"]}&starting_nodes[{i}].type={v["v_type"]}'
+        f'starting_nodes[{i}]={v["v_id"]}&starting_nodes[{i}].type=producer'
         for i, v in enumerate(supply_shocked_vertices)]
     cut_params = '&'.join(cut_params)
-    params = f'{cut_params}&allowed_edge_types={db.CRITICAL_INDUSTRY_EDGE}&allowed_edge_types={db.HAS_INDUSTRY_EDGE}&allowed_edge_types={db.TRADE_SHOCK_EDGE}&allowed_edge_types={db.PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&final_vertex_types={db.COUNTRY_VERTEX}&report_links=TRUE'
+    params = f'{cut_params}&allowed_edge_types={db.CRITICAL_INDUSTRY_EDGE}&allowed_edge_types={db.TRADE_SHOCK_EDGE}&allowed_edge_types={db.PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&final_vertex_types={db.COUNTRY_VERTEX}&report_links=TRUE'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/bfs_reachability.gsql'), params)
     edges = res[1]['@@allEdges']
     affected_countries = res[0]['res']
     print('pre-filtered edge count', len(edges))
     affected_country_ids = [c['v_id'] for c in affected_countries]
-    edges = remove_edges_not_on_destination_path(edges, affected_country_ids)
-    print('reachable edge count', len(edges))
+    starting_ids = [p['v_id'] for p in producer_vertices]
+    all_paths = calculate_all_paths(edges, starting_ids, affected_country_ids)
+    print(f'Found {len(all_paths)} paths from producers to affected countries')
+    sanity_check_paths(all_paths, starting_ids, affected_country_ids)
+    reachable_edges = dedupe_edges_from_paths(all_paths)
+    # return {'edges': edges, 'affected_country_ids': affected_country_ids}
+    print('reachable edge count', len(reachable_edges))
     return {
         'affected_countries': affected_countries,
-        'reachable_edges': edges}
+        'reachable_edges': reachable_edges,
+        'all_paths': all_paths}
+
+
 
 def format_percentage(fixed):
     return f'{fixed / 10000.0}%'

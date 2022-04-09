@@ -7,6 +7,7 @@
 * Try and avoid a new user needing to make a secret
 * Add some licensing attribution onto page
 * Stick a tigergaph attrib on page
+* Instructions has to include the query install step (or start from a starter that would have stuff - although then we get data too :( )
 
 ## Limitations of model
 * Doesn't explicitly call out the obvious shock, e.g. "if no petrol products from gulf, then no petrol products on sale for public" - it's more focused on how shocks create other shocks.

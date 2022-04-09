@@ -1,5 +1,5 @@
 import Datamap from 'datamaps';
-import { commodityCodesToNames } from './graph_model/refData';
+import { commodityCodesToNames, regionNamesToMultiCountries } from './graph_model/refData';
 import { formatGraphRegion, codeToCountry, overrideRegionNameForCode } from './graph_model/regionHandling';
 
 var defaultOptions = {
@@ -325,6 +325,7 @@ export function prepareCountryData(rspData) {
         countryData[cnt] = {
           shockedIndustries: [], 
           nameOverride: overrideRegionNameForCode[cnt],
+          graphRegion: edge.to_id,
           impactedIndustryGdpPct: 0.0};
       }
       // console.log(`Adding industry ${edge.from_id} to country ${cnt}`);
@@ -468,7 +469,51 @@ function impactedGdpPctToFillKey(gdpPercent) {
   return 'shock_highest';
 }
 
-export function mapShocks(shock_map, affectedCountryData, sectorLinkData) {
+function edgeToText(edge) {
+  const tradedCommodity = formatGraphProducer(edge.from_id);
+  if (edge.e_type === 'critical_industry_of') {
+    const toReg = edge.to_id;
+    const toLbl = regionNamesToMultiCountries[toReg] ? regionNamesToMultiCountries[toReg].name : codeToCountry(toReg.toUpperCase());
+    return `${tradedCommodity} is a critical industry of ${toLbl} (${pctAsString(formatFixedPercentage(edge.attributes.pct_of_national_output))}% of national output)`;
+  }
+  const producedCommodity = formatGraphProducer(edge.to_id);
+  const fromReg = graphProducerToGraphRegion(edge.from_id);
+  const toReg = graphProducerToGraphRegion(edge.to_id);
+  const fromLbl = regionNamesToMultiCountries[fromReg] ? regionNamesToMultiCountries[fromReg].name : codeToCountry(fromReg.toUpperCase());
+  const toLbl = regionNamesToMultiCountries[toReg] ? regionNamesToMultiCountries[toReg].name : codeToCountry(toReg.toUpperCase());
+  
+  if (edge.e_type === 'trade_shock') {
+    return `[${tradedCommodity}] from ${fromLbl} -> [${producedCommodity}] in ${toLbl}: [${tradedCommodity}] from ${fromLbl} is ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_imported_product_total))}% of the total imported into ${toLbl}, and imported [${tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_producer_input))}% of the inputs to [${producedCommodity}] in ${toLbl}`
+  }
+  if (edge.e_type === 'production_shock') {
+    return `[${tradedCommodity}] from ${fromLbl} -> [${producedCommodity}] in ${toLbl}: [${tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_producer_input))}% of the inputs to [${producedCommodity}] in ${toLbl}`;
+  }
+  throw Error('Unknown edge type ' + edge.e_type);
+  
+}
+
+function formatPath(path, i) {
+  console.log('Going to format path', path);
+  var result = `<em>Path ${i+1}</em><br>`;
+  for (var edge of path) {
+    result += edgeToText(edge);
+    result += '<br>';
+  }
+  return result;
+}
+
+function showPaths(pathsOutputElem, geo, mapData, allPaths) {
+  console.log('Going to show paths based on ', mapData);
+  console.log('Will add to', pathsOutputElem);
+  console.log('Got paths', allPaths);
+  // pathsOutputElem.innerText = 'Yo yo, hey hey!!!';
+  var fullPathOutput = `<strong>Showing how shocks reach ${mapData.nameOverride ? mapData.nameOverride : geo.properties.name}</strong><br>`;
+  fullPathOutput += allPaths.filter(path => path[path.length - 1]['to_id'] == mapData.graphRegion).map(formatPath).join('<br>');
+  console.log('Got full path output = ', fullPathOutput);
+  pathsOutputElem.innerHTML = fullPathOutput;
+}
+
+export function mapShocks(shock_map, pathsElem, affectedCountryData, sectorLinkData, allPaths) {
   mode = SHOCK_TRANSFER_MODE;
   let data = {};
   // console.log('Affected country data = ', affectedCountryData);
@@ -478,8 +523,18 @@ export function mapShocks(shock_map, affectedCountryData, sectorLinkData) {
       ...affectedCountryData[affected]};
   }
   console.log('Map data = ', data);
+  console.log('All paths = ', allPaths);
   shock_map.updateChoropleth(data, {reset: true});
 
+  // Now reset any previous click handlers
+  var subunits = shock_map.svg.select('g.datamaps-subunits');
+  subunits.selectAll('path.datamaps-subunit').on('click', null);
+  // And add a click handler for every affected country
+  for (affected in affectedCountryData) {
+    const extraData = data[affected];
+    shock_map.svg.select('path.' + affected).on('click', (geo) => showPaths(pathsElem, geo, extraData, allPaths));
+  } 
+ 
   // Arcs coordinates can be specified explicitly with latitude/longtitude,
   // or just the geographic center of the state/country.
   const arcs = [];

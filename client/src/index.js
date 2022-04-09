@@ -110,6 +110,7 @@ function handleRunAnalysisClick() {
 
 runBtn.addEventListener('click', handleRunAnalysisClick);
 
+const pathsOutputElem = document.getElementById('pathsOutputElem');
 function runShockReach(vertices, /*handler*/) {
     console.log("Running shock reach analysis for", vertices);
     axInstance.post(
@@ -122,7 +123,7 @@ function runShockReach(vertices, /*handler*/) {
             console.log(response['data']);
             const affectedCountryData = prepareCountryData(response['data']);
             const sectorLinkData = prepareLinkData(response['data']);
-            mapShocks(mapControl, affectedCountryData, sectorLinkData);
+            mapShocks(mapControl, pathsOutputElem, affectedCountryData, sectorLinkData, response['data']['all_paths']);
         })
         .catch(function (error) 
         {

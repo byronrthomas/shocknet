@@ -1,0 +1,5 @@
+INTERPRET QUERY fetch_neighbours(SET<VERTEX> fromVertices, STRING edgeType) FOR GRAPH economic_links { 
+  Start = fromVertices;
+  DestVertices = SELECT d FROM Start:s -(edgeType>:e)- :d;
+  PRINT DestVertices; 
+}

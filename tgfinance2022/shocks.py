@@ -183,6 +183,12 @@ def summarise_country_groups_from_query(all_nodes, group_attrib_name):
 
 def find_country_partitions(conn, use_weak_cc=True, additional_params_string='', verbose=False):
     assert_conditioned(conn)
+    ## NOTE: in these queries it is safe to use the has_industry edges, because
+    ## they only create loops amongst producers of a single country - they can't
+    ## therefore affect reachability of another country from any other
+    ## e.g. usa -> has_industry usa-oil -> is_critical_industry_of usa
+    ## won't create any paths to another country
+    ## and still the paths into the country nodes only come via is_critical_industry
     v_type_params = 'v_type=country&v_type=producer'
     e_type_params = 'e_type=trade_shock&e_type=critical_industry_of&e_type=has_industry&e_type=production_shock'
     rev_e_type_params = 'rev_e_type=REV_trade_shock&rev_e_type=REV_critical_industry_of&rev_e_type=REV_has_industry&rev_e_type=REV_production_shock'

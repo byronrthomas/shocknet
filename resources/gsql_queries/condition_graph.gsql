@@ -38,6 +38,7 @@ INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, IN
     critical_inds = SELECT p
       FROM producer:p -(located_in)- country:c
       WHERE p.pct_of_national_output >= national_output_thresh
+      AND p.product_code != "CGDS"
       ACCUM INSERT INTO critical_industry_of VALUES(p, c, p.pct_of_national_output, p.market_val_dollars),
       INSERT INTO REV_critical_industry_of VALUES(c, p, p.pct_of_national_output, p.market_val_dollars);
 

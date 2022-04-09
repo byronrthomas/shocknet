@@ -121,18 +121,6 @@ var defaultOptions = {
         }
       }
 
-// const COMMON_LAT_LONG_OVERRIDES = {
-//   "CAN": {latitude: 56.624472, longitude: -114.665293},
-//   "CHL": {latitude: -33.448890, longitude: -70.669265},
-//   "HRV": {latitude: 45.815011, longitude: 15.981919},
-//   "IDN": {latitude: -6.208763, longitude: 106.845599},
-//   "JPN": {latitude: 35.689487, longitude: 139.691706},
-//   "MYS": {latitude: 3.139003, longitude: 101.686855},
-//   "NOR": {latitude: 59.913869, longitude: 10.752245},
-//   "USA": {latitude: 41.140276, longitude: -100.760145},
-//   "VNM": {latitude: 21.027764, longitude: 105.834160},
-// }
-
 function handleArcs (layer, data, options) {
     var self = this,
         svg = this.svg;
@@ -150,10 +138,10 @@ function handleArcs (layer, data, options) {
     }
 
     if ( typeof options === "undefined" ) {
-      console.log('Options was undefined');
+      //console.log('Options was undefined');
       options = defaultOptions.arcConfig;
     }
-    console.log('Options = ', options);
+    //console.log('Options = ', options);
 
     var arcs = layer.selectAll('path.datamaps-arc').data( data, JSON.stringify );
 
@@ -173,7 +161,7 @@ function handleArcs (layer, data, options) {
             return val(datum.strokeWidth, options.strokeWidth, datum);
         })
         .attr('d', function(datum) {
-            console.log('Handling datum =', datum);
+            // console.log('Handling datum =', datum);
             var originXY, destXY;
 
             if (typeof datum.origin === "string") {
@@ -334,13 +322,17 @@ export function prepareCountryData(rspData) {
   for ( var edge of edges.filter(e => allCountries.has(e.to_id)) ) {
     for ( var cnt of formatGraphRegion(edge.to_id) ) {
       if ( !(cnt in countryData) ) {
-        countryData[cnt] = {shockedIndustries: [], nameOverride: overrideRegionNameForCode[cnt]};
+        countryData[cnt] = {
+          shockedIndustries: [], 
+          nameOverride: overrideRegionNameForCode[cnt],
+          impactedIndustryGdpPct: 0.0};
       }
-      console.log(`Adding industry ${edge.from_id} to country ${cnt}`);
+      // console.log(`Adding industry ${edge.from_id} to country ${cnt}`);
       countryData[cnt].shockedIndustries.push({
         name: formatGraphProducer(edge.from_id),
         gdp_pct: formatFixedPercentage(edge.attributes.pct_of_national_output),
       });
+      countryData[cnt].impactedIndustryGdpPct += formatFixedPercentage(edge.attributes.pct_of_national_output);
     }
   }
   return countryData;
@@ -397,14 +389,15 @@ export function prepareLinkData(rspData) {
 }
 
 function industryShockAsText({name, gdp_pct}) {
-  return `${name} (${gdp_pct}% of GDP)`;
+  return `${name} (${pctAsString(gdp_pct)}% of GDP)`;
 }
 
 function countryPopupShockTransfer(geography, data) {
   return '<div class="hoverinfo">' + 
     (data.nameOverride ? 
       `<strong>${data.nameOverride} Region</strong> (includes ${geography.properties.name})` : 
-      `<strong>${geography.properties.name}</strong>`) + 
+      `<strong>${geography.properties.name}</strong>`) +
+      ` - affected industries total ${pctAsString(data.impactedIndustryGdpPct)}% of GDP` + 
     '<br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + '</div>';
 }
 function countryPopupShockGrouping(geography, data) {
@@ -427,6 +420,10 @@ function handleCountryPopup(geography, data) {
   if (mode === SHOCK_GROUPING_MODE) return countryPopupShockGrouping(geography, data);
 }
 
+function pctAsString(pctage) {
+  return pctage.toFixed(1);
+}
+
 export function initMap(elem) {
     // eslint-disable-next-line no-unused-vars
     var shock_map = new Datamap({
@@ -437,9 +434,13 @@ export function initMap(elem) {
         scope: 'world',
         fills: {
           defaultFill: "#ABDDA4",
-          impact: "#fc59e6",
+          impact: '#5b0909',
           transfer: '#f81313',
           isolated: '#807e7e',
+          shock_highest: '#5b0909',
+          shock_high: '#8e3d3d',
+          shock_low: '#b87575',
+          shock_lowest: '#e8bbbb',
         },
         geographyConfig: {
           highlightFillColor: '#0fa0fa',
@@ -453,12 +454,27 @@ export function initMap(elem) {
       return shock_map;
 }
 
+function impactedGdpPctToFillKey(gdpPercent) {
+  if (gdpPercent <= 0.0) {
+    console.log('WARN: asking to format a shock for country with total impacted GDP of 0 or less', gdpPercent);
+    return 'defaultFill';
+  }
+  if (gdpPercent < 10.0) return 'shock_lowest';
+  if (gdpPercent < 30.0) return 'shock_low';
+  if (gdpPercent < 50.0) return 'shock_high';
+  if (gdpPercent > 100.0) {
+    console.log('WARN: asking to format a shock for country with total impacted GDP of more than 100', gdpPercent);
+  }
+  return 'shock_highest';
+}
+
 export function mapShocks(shock_map, affectedCountryData, sectorLinkData) {
   mode = SHOCK_TRANSFER_MODE;
   let data = {};
+  // console.log('Affected country data = ', affectedCountryData);
   for (var affected of Object.getOwnPropertyNames(affectedCountryData)) {
     data[affected] = {
-      "fillKey": "impact",
+      "fillKey": impactedGdpPctToFillKey(affectedCountryData[affected].impactedIndustryGdpPct),
       ...affectedCountryData[affected]};
   }
   console.log('Map data = ', data);
@@ -486,7 +502,7 @@ export function mapShocks(shock_map, affectedCountryData, sectorLinkData) {
     const toCountry = codeToCountry(data.destination);
     const fromLbl = data.fromOverride ? data.fromOverride : fromCountry;
     const toLbl = data.toOverride ? data.toOverride : toCountry;
-    const transferDetails = data.transfers.map(tr => `[${tr.tradedCommodity}] from ${fromLbl} -> [${tr.producedCommodity}] in ${toLbl}: [${tr.tradedCommodity}] from ${fromLbl} is ${formatFixedPercentage(tr.pct_of_imported_product_total)}% of the total imported into ${toLbl}, and imported [${tr.tradedCommodity}] makes up ${formatFixedPercentage(tr.pct_of_producer_input)}% of the inputs to [${tr.producedCommodity}] in ${toLbl}`);
+    const transferDetails = data.transfers.map(tr => `[${tr.tradedCommodity}] from ${fromLbl} -> [${tr.producedCommodity}] in ${toLbl}: [${tr.tradedCommodity}] from ${fromLbl} is ${pctAsString(formatFixedPercentage(tr.pct_of_imported_product_total))}% of the total imported into ${toLbl}, and imported [${tr.tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(tr.pct_of_producer_input))}% of the inputs to [${tr.producedCommodity}] in ${toLbl}`);
     return '<div class="hoverinfo"><strong>Shock: ' + fromLbl + ' -> ' + toLbl + '</strong><br>'
     + transferDetails.join('<br>') + '</div>';
   }
@@ -519,7 +535,7 @@ export function mapShocks(shock_map, affectedCountryData, sectorLinkData) {
   shock_map.bubbles(bubbles, {
     popupTemplate: function(geo, data) {
       const lbl = data.countryOverride ?? codeToCountry(data.centered);
-      const transferDetails = data.transfers.map(tr => `${tr.tradedCommodity} -> ${tr.producedCommodity}: [${tr.tradedCommodity}] makes up ${formatFixedPercentage(tr.pct_of_producer_input)}% of the inputs to [${tr.producedCommodity}] in ${lbl}`);
+      const transferDetails = data.transfers.map(tr => `${tr.tradedCommodity} -> ${tr.producedCommodity}: [${tr.tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(tr.pct_of_producer_input))}% of the inputs to [${tr.producedCommodity}] in ${lbl}`);
       return '<div class="hoverinfo"><strong>Local shock transfer in ' + lbl +
         '</strong><br>' + transferDetails.join('<br>') + '</div>';
     }

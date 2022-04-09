@@ -399,7 +399,8 @@ function countryPopupShockTransfer(geography, data) {
       `<strong>${data.nameOverride} Region</strong> (includes ${geography.properties.name})` : 
       `<strong>${geography.properties.name}</strong>`) +
       ` - affected industries total ${pctAsString(data.impactedIndustryGdpPct)}% of GDP` + 
-    '<br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + '</div>';
+    '<br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + 
+    '<br/>Click on country to show how shocks reach here (further down the page)</div>';
 }
 function countryPopupShockGrouping(geography, data) {
   if (data.communityDescription) {
@@ -493,7 +494,7 @@ function edgeToText(edge) {
 }
 
 function formatPath(path, i) {
-  console.log('Going to format path', path);
+  // console.log('Going to format path', path);
   var result = `<em>Path ${i+1}</em><br>`;
   for (var edge of path) {
     result += edgeToText(edge);
@@ -503,13 +504,11 @@ function formatPath(path, i) {
 }
 
 function showPaths(pathsOutputElem, geo, mapData, allPaths) {
-  console.log('Going to show paths based on ', mapData);
-  console.log('Will add to', pathsOutputElem);
-  console.log('Got paths', allPaths);
-  // pathsOutputElem.innerText = 'Yo yo, hey hey!!!';
+  // console.log('Going to show paths based on ', mapData);
+  // console.log('Will add to', pathsOutputElem);
+  // console.log('Got paths', allPaths);
   var fullPathOutput = `<strong>Showing how shocks reach ${mapData.nameOverride ? mapData.nameOverride : geo.properties.name}</strong><br>`;
   fullPathOutput += allPaths.filter(path => path[path.length - 1]['to_id'] == mapData.graphRegion).map(formatPath).join('<br>');
-  console.log('Got full path output = ', fullPathOutput);
   pathsOutputElem.innerHTML = fullPathOutput;
 }
 

@@ -1,6 +1,0 @@
-INTERPRET QUERY find_producers(SET<STRING> country_codes, SET<STRING> product_codes) FOR GRAPH economic_links { 
-  Result = 
-    SELECT pr FROM country:c -(_)- producer:pr -(_)- product:p
-    WHERE c.code IN country_codes AND p.code IN product_codes;
-  PRINT Result;
-}

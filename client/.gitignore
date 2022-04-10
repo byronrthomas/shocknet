@@ -12,8 +12,10 @@
 /build
 
 # dev dist - these are auto-generated
-/dist/bundle.js
-/dist/index.html
+/dist/effects.bundle.js
+/dist/effects.html
+/dist/horizons.bundle.js
+/dist/horizons.html
 
 # misc
 .DS_Store

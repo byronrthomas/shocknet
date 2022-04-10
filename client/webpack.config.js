@@ -4,7 +4,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
   mode: 'development',
   entry: {
-    bundle: './src/index.js'
+    effects: './src/effects.js',
+    horizons: './src/horizons.js'
   },
   resolve: {
     extensions: ['.ts', '.js'],
@@ -14,12 +15,20 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js'
+    filename: '[name].bundle.js'
    },
-  plugins: [new HtmlWebpackPlugin({
+  plugins: [
+    new HtmlWebpackPlugin({
     title: 'ByronT: TigerGraph GraphForAll Finance Challenge',
-    // Load a custom template (lodash by default)
-    template: 'src/template-index.html'
+    template: 'src/assets/template-effects.html',
+    chunks: ['effects'],
+    filename: 'effects.html'
+  }),
+    new HtmlWebpackPlugin({
+    title: 'ByronT: TigerGraph GraphForAll Finance Challenge',
+    template: 'src/assets/template-horizons.html',
+    chunks: ['horizons'],
+    filename: 'horizons.html'
   })],
   module: {
     rules: [{

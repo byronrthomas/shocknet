@@ -477,9 +477,9 @@ function edgeToText(edge) {
 
 
 
-function formatPath(path, i) {
+function formatPath(path, withNumbering, i) {
   // console.log('Going to format path', path);
-  var result = `<em>Path ${i+1}</em><br>`;
+  var result = withNumbering ? `<em>Path ${i+1}</em><br>` : '';
   for (var edge of path) {
     result += edgeToText(edge);
     result += '<br>';
@@ -487,17 +487,16 @@ function formatPath(path, i) {
   return result;
 }
 
-function showPaths(pathsOutputElem, geo, mapData, allPaths) {
+function showPathsToEndPoint(pathsOutputElem, {graphRegion}, allPaths) {
   // console.log('Going to show paths based on ', mapData);
   // console.log('Will add to', pathsOutputElem);
   // console.log('Got paths', allPaths);
-  var fullPathOutput = `<strong>Showing how shocks reach ${mapData.nameOverride ? mapData.nameOverride : geo.properties.name}</strong><br>`;
-  fullPathOutput += allPaths.filter(path => path[path.length - 1]['to_id'] == mapData.graphRegion).map(formatPath).join('<br>');
+  var fullPathOutput = `<strong>Showing how shocks reach ${graphRegionToUserText(graphRegion)}</strong><br>`;
+  fullPathOutput += allPaths.filter(path => path[path.length - 1]['to_id'] == graphRegion).map((x, i) => formatPath(x, true, i)).join('<br>');
   pathsOutputElem.innerHTML = fullPathOutput;
 }
 
 function formatPathSummary(path) {
-  console.log('Asked to format path summary for', path);
   const startEdge = path[0];
   const fromText = nodeAsSourceText({v_id: startEdge.from_id, v_type: startEdge.from_type});
   const finalEdge = path[path.length - 1];
@@ -505,18 +504,29 @@ function formatPathSummary(path) {
   return `${path.length} hops: ${fromText} ===>>> ${toText}`;
 }
 
-function addLi(listElem, userText) {
+function addLi(listElem, userText, clickHandler) {
   const li = document.createElement('li');
   li.textContent = userText;
   li.setAttribute("class", "list-group-item");
+  li.addEventListener('click', clickHandler);
   listElem.appendChild(li);
 }
 
-function showPathSummaries(allPathsListElem, allPaths) {
+function showPathDetail(pathsOutputElem, path) {
+  // console.log('Going to show paths based on ', mapData);
+  // console.log('Will add to', pathsOutputElem);
+  // console.log('Got paths', allPaths);
+  var fullPathOutput = `<strong>Path  ${formatPathSummary(path)}</strong><br>`;
+  fullPathOutput += formatPath(path, false);
+  pathsOutputElem.innerHTML = fullPathOutput;
+}
+
+function showPathSummaries(allPathsListElem, allPaths, pathsOutputElem) {
   // Reverse sort by path length
   allPaths.sort((b, a) => a.length - b.length);
-  for (var path of allPaths) {
-    addLi(allPathsListElem, formatPathSummary(path));
+  for (const path of allPaths) {
+    const handler = () => showPathDetail(pathsOutputElem, path);
+    addLi(allPathsListElem, formatPathSummary(path), handler);
   }
 }
 
@@ -539,7 +549,7 @@ export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affected
   // And add a click handler for every affected country
   for (affected in affectedCountryData) {
     const extraData = data[affected];
-    shock_map.svg.select('path.' + affected).on('click', (geo) => showPaths(pathDetailsElem, geo, extraData, allPaths));
+    shock_map.svg.select('path.' + affected).on('click', () => showPathsToEndPoint(pathDetailsElem, extraData, allPaths));
   } 
  
   // Arcs coordinates can be specified explicitly with latitude/longtitude,
@@ -603,7 +613,7 @@ export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affected
     }
   });
 
-  showPathSummaries(allPathsListElem, allPaths);
+  showPathSummaries(allPathsListElem, allPaths, pathDetailsElem);
 
 }
 

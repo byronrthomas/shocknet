@@ -103,7 +103,6 @@ function nodeToUserText({v_type, v_id}, joiningWord) {
   }
   
   export function nodeAsSourceText({v_type, v_id}) {
-    console.log(`Asked to handle ${v_type} ${v_id}`);
     return nodeToUserText({v_type, v_id}, 'from');
   }
 

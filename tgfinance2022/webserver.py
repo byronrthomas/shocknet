@@ -41,5 +41,11 @@ def communities():
     print('Received JSON data: ', param_data)
     return jsonify(shocks.find_country_partitions(conn, **param_data))
 
+@api.route('/originators', methods=['POST'])
+def originators():
+    param_data = request.get_json()
+    print('Received JSON data: ', param_data)
+    return jsonify(shocks.run_shock_origination_query(conn, **param_data))
+
 if __name__ == '__main__':
     api.run() 

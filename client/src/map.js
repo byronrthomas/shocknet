@@ -1,6 +1,5 @@
 import Datamap from 'datamaps';
-import { commodityCodesToNames, regionNamesToMultiCountries } from './graph_model/refData';
-import { formatGraphRegion, codeToCountry, overrideRegionNameForCode } from './graph_model/regionHandling';
+import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText } from './graph_model/formatting';
 
 var defaultOptions = {
     scope: 'world',
@@ -289,19 +288,6 @@ function handleArcs (layer, data, options) {
 
 
 
-function formatGraphProducer(graphProducer) {
-  if (graphProducer.length < 7) {
-    // Should be a [three letter country code]-[three letter commod code] pattern
-    console.log('WARN: cannot format as a producer:', graphProducer);
-  }
-  const graphComm = graphProducer.substring(4)
-  const mapComm = commodityCodesToNames[graphComm];
-  if (!mapComm) {
-    console.log(`WARN: cannot find any corresponding commodity name for ${graphComm} - producer ${graphProducer}`);
-  }
-  return mapComm;
-}
-
 
 const FIXED_POINT_DIVISOR = 10000;
 function formatFixedPoint(fixedPtNum) {
@@ -339,9 +325,6 @@ export function prepareCountryData(rspData) {
   return countryData;
 }
 
-function graphProducerToGraphRegion(code) {
-  return code.substring(0, 3);
-}
 
 function ensureKeyPresent(obj, key, defaultValue) {
   if (!(key in obj)) {
@@ -356,8 +339,7 @@ export function prepareLinkData(rspData) {
   const productionWithinCountry = {};
   for (var edge of edges) {
     if (edge.from_type === 'producer' && edge.to_type === 'producer') {
-      const fromReg = graphProducerToGraphRegion(edge.from_id);
-      const toReg = graphProducerToGraphRegion(edge.to_id);
+      const [fromReg, toReg] = edgeToGraphRegions(edge);
       const fromCountries = formatGraphRegion(fromReg);
       const edgeDetails = {
         'tradedCommodity': formatGraphProducer(edge.from_id),
@@ -470,28 +452,30 @@ function impactedGdpPctToFillKey(gdpPercent) {
   return 'shock_highest';
 }
 
+
+
 function edgeToText(edge) {
   const tradedCommodity = formatGraphProducer(edge.from_id);
   if (edge.e_type === 'critical_industry_of') {
-    const toReg = edge.to_id;
-    const toLbl = regionNamesToMultiCountries[toReg] ? regionNamesToMultiCountries[toReg].name : codeToCountry(toReg.toUpperCase());
+    const toReg = edgeToDestRegion(edge);
+    const toLbl = graphRegionToUserText(toReg);
     return `${tradedCommodity} is a critical industry of ${toLbl} (${pctAsString(formatFixedPercentage(edge.attributes.pct_of_national_output))}% of national output)`;
   }
-  const producedCommodity = formatGraphProducer(edge.to_id);
-  const fromReg = graphProducerToGraphRegion(edge.from_id);
-  const toReg = graphProducerToGraphRegion(edge.to_id);
-  const fromLbl = regionNamesToMultiCountries[fromReg] ? regionNamesToMultiCountries[fromReg].name : codeToCountry(fromReg.toUpperCase());
-  const toLbl = regionNamesToMultiCountries[toReg] ? regionNamesToMultiCountries[toReg].name : codeToCountry(toReg.toUpperCase());
+  const [, toReg] = edgeToGraphRegions(edge);
+  const toLbl = graphRegionToUserText(toReg);
+  const fromText = nodeAsSourceText({v_id: edge.from_id, v_type: edge.from_type});
+  const toText = nodeAsDestText({v_id: edge.to_id, v_type: edge.to_type});
   
   if (edge.e_type === 'trade_shock') {
-    return `[${tradedCommodity}] from ${fromLbl} -> [${producedCommodity}] in ${toLbl}: [${tradedCommodity}] from ${fromLbl} is ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_imported_product_total))}% of the total imported into ${toLbl}, and imported [${tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_producer_input))}% of the inputs to [${producedCommodity}] in ${toLbl}`
+    return `${fromText} -> ${toText}: ${fromText} is ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_imported_product_total))}% of the total imported into ${toLbl}, and imported [${tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_producer_input))}% of the inputs to ${toText}`
   }
   if (edge.e_type === 'production_shock') {
-    return `[${tradedCommodity}] from ${fromLbl} -> [${producedCommodity}] in ${toLbl}: [${tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_producer_input))}% of the inputs to [${producedCommodity}] in ${toLbl}`;
+    return `${fromText} -> ${toText}: [${tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_producer_input))}% of the inputs to ${toText}`;
   }
   throw Error('Unknown edge type ' + edge.e_type);
-  
 }
+
+
 
 function formatPath(path, i) {
   // console.log('Going to format path', path);
@@ -512,7 +496,31 @@ function showPaths(pathsOutputElem, geo, mapData, allPaths) {
   pathsOutputElem.innerHTML = fullPathOutput;
 }
 
-export function mapShocks(shock_map, pathsElem, affectedCountryData, sectorLinkData, allPaths) {
+function formatPathSummary(path) {
+  console.log('Asked to format path summary for', path);
+  const startEdge = path[0];
+  const fromText = nodeAsSourceText({v_id: startEdge.from_id, v_type: startEdge.from_type});
+  const finalEdge = path[path.length - 1];
+  const toText = nodeAsDestText({v_id: finalEdge.to_id, v_type: finalEdge.to_type});
+  return `${path.length} hops: ${fromText} ===>>> ${toText}`;
+}
+
+function addLi(listElem, userText) {
+  const li = document.createElement('li');
+  li.textContent = userText;
+  li.setAttribute("class", "list-group-item");
+  listElem.appendChild(li);
+}
+
+function showPathSummaries(allPathsListElem, allPaths) {
+  // Reverse sort by path length
+  allPaths.sort((b, a) => a.length - b.length);
+  for (var path of allPaths) {
+    addLi(allPathsListElem, formatPathSummary(path));
+  }
+}
+
+export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affectedCountryData, sectorLinkData, allPaths) {
   mode = SHOCK_TRANSFER_MODE;
   let data = {};
   // console.log('Affected country data = ', affectedCountryData);
@@ -531,7 +539,7 @@ export function mapShocks(shock_map, pathsElem, affectedCountryData, sectorLinkD
   // And add a click handler for every affected country
   for (affected in affectedCountryData) {
     const extraData = data[affected];
-    shock_map.svg.select('path.' + affected).on('click', (geo) => showPaths(pathsElem, geo, extraData, allPaths));
+    shock_map.svg.select('path.' + affected).on('click', (geo) => showPaths(pathDetailsElem, geo, extraData, allPaths));
   } 
  
   // Arcs coordinates can be specified explicitly with latitude/longtitude,
@@ -594,6 +602,8 @@ export function mapShocks(shock_map, pathsElem, affectedCountryData, sectorLinkD
         '</strong><br>' + transferDetails.join('<br>') + '</div>';
     }
   });
+
+  showPathSummaries(allPathsListElem, allPaths);
 
 }
 

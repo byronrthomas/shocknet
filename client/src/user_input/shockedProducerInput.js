@@ -1,4 +1,4 @@
-import { codeToCountry } from "../graph_model/regionHandling";
+import { codeToCountry } from "../graph_model/formatting";
 import { commodityCodesToNames, regionNamesToMultiCountries } from "../graph_model/refData";
 
 const state = {

@@ -120,11 +120,11 @@ def run_affected_countries_query(conn, supply_shocked_vertices):
         f'starting_nodes[{i}]={v["v_id"]}&starting_nodes[{i}].type=producer'
         for i, v in enumerate(producer_vertices)]
     cut_params = '&'.join(cut_params)
-    params = f'{cut_params}&allowed_edge_types={db.CRITICAL_INDUSTRY_EDGE}&allowed_edge_types={db.TRADE_SHOCK_EDGE}&allowed_edge_types={db.PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&final_vertex_types={db.COUNTRY_VERTEX}&report_links=TRUE'
+    params = f'{cut_params}&allowed_edge_types={db.CRITICAL_INDUSTRY_EDGE}&allowed_edge_types={db.TRADE_SHOCK_EDGE}&allowed_edge_types={db.PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&report_links=TRUE'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/bfs_reachability.gsql'), params)
     edges = res[1]['@@allEdges']
-    affected_countries = res[0]['res']
+    affected_countries = [v for v in res[0]['res'] if v['v_type'] == db.COUNTRY_VERTEX]
     print('pre-filtered edge count', len(edges))
     affected_country_ids = [c['v_id'] for c in affected_countries]
     starting_ids = [p['v_id'] for p in producer_vertices]
@@ -168,7 +168,7 @@ def run_shock_origination_query(conn, endpoint_vertices):
         f'starting_nodes[{i}]={v["v_id"]}&starting_nodes[{i}].type=producer'
         for i, v in enumerate(producer_vertices)]
     cut_params = '&'.join(cut_params)
-    params = f'{cut_params}&allowed_edge_types={db.REV_TRADE_SHOCK_EDGE}&allowed_edge_types={db.REV_PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&final_vertex_types={db.PRODUCER_VERTEX}&report_links=TRUE'
+    params = f'{cut_params}&allowed_edge_types={db.REV_TRADE_SHOCK_EDGE}&allowed_edge_types={db.REV_PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&report_links=TRUE'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/bfs_reachability.gsql'), params)
     edges = res[1]['@@allEdges']

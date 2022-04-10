@@ -30,7 +30,7 @@
           <ul>
             <li>Input threshold x% - a supply shock passes from one sector to another sector, if the shocked sector is at least x% of the total inputs needed to produce the other sector's product.</li>
             <li>Imported amount threshold y% - a supply shock passes from one country's exports of a product to another country, if the exports are at least y% of the total amount of the product imported.</li>
-            <li>Critical industry threshold z% - a country is treated as experiencing a shock if any producer is experiencing a shock, and that producer makes at z% of national output.</li>
+            <li>Critical industry threshold z% - <em>only used if identifying shocks that will affect an entire country</em> - a country is treated as experiencing a shock if any producer is experiencing a shock, and that producer makes at z% of national output.</li>
           </ul>
         </p>
         <form class="form-inline">
@@ -68,33 +68,33 @@
         <div class="panel-body">
           <!-- <div class="radio"> -->
             <label class="radio-inline">
-              <input type="radio" name="optionsRadios" id="optionsRadiosSpread" value="shockReachability" checked>
-              Supply shock spread
+              <input type="radio" name="optionsRadios" id="optionsRadiosOrigination" value="shockOrigination" checked>
+              Supply shock origination
             </label>
           <!-- </div>
           <div class="radio"> -->
-            <label class="radio-inline">
+            <!-- <label class="radio-inline">
               <input type="radio" name="optionsRadios" id="optionsRadiosStrongGroups" value="otherAnalysis">
               Country groups strongly transmitting shocks
-            </label>
+            </label> -->
           <!-- </div>
           <div class="radio"> -->
-            <label class="radio-inline">
+            <!-- <label class="radio-inline">
               <input type="radio" name="optionsRadios" id="optionsRadiosWeakGroups" value="otherAnalysis">
               Country groups weakly transmitting shocks
-            </label>
+            </label> -->
           <!-- </div> -->
           
-          <div id="paramsCardShockSpread">
+          <div id="paramsCardShockOrigination">
             <div>
-              <p><strong>A supply shock affects some selected producers - the model will show how the crisis spreads</strong></p>
-              <p>By <em>producer</em> we mean the entire production of a given sector in a given region, e.g. <em>The oil sector of the USA</em>. It is also possible to cut off all production from a given region, e.g. <em>An embargo on the USA.</em></p>
-              <p>We assume a supply shock - their output is massively reduced, the model will show how the shocks transmit from these starting points.</p>
+              <p><strong>Specific producers need to be protected - the model will show what external shocks might affect them in the future</strong></p>
+              <p>By <em>producer</em> we mean the entire production of a given sector in a given region, e.g. <em>The oil sector of the USA</em>. It is also possible to analyse a given region, e.g. <em>All critical industries of the USA.</em></p>
+              <p>We attempt to find external shocks that might cause a supply shock (their output is massively reduced), for these producers.</p>
             </div>
             <form class="form-horizontal">
               <div class="form-group">
-                <label for="shockedProducerRegion" class="col-sm-2 control-label">Region (country)</label>
-                <select class="select2-enable col-sm-10" id="shockedProducerRegion" name="shockedRegion">
+                <label for="endpointProducerRegion" class="col-sm-2 control-label">Region (country)</label>
+                <select class="select2-enable col-sm-10" id="endpointProducerRegion" name="endpointRegion">
                   <option value="aus">Australia</option>
                   <option value="nzl">New Zealand</option>
                   <option value="xoc">Rest of Oceania: Papua New Guinea, Samoa, Fiji, Tonga, other Micronesia / Polynesia</option>
@@ -230,11 +230,11 @@
                   <option value="xsc">Rest of South African Customs: Lesotho, Swaziland</option>
                   <option value="xtw">Rest of the World: Antarctica, Bouvet Island, British Indian Ocean Territory, French Southern Territories</option>
                 </select>
-                <button type="button" class="btn btn-primary" id="shockedProducerAddRegion">Add all producers</button>
+                <button type="button" class="btn btn-primary" id="endpointProducerAddRegion">Add all producers</button>
               </div>
               <div class="form-group">
-                <label for="shockedProducerProduct" class="col-sm-2 control-label">Producer of</label>
-                <select class="select2-enable col-sm-10" id="shockedProducerProduct">
+                <label for="endpointProducerProduct" class="col-sm-2 control-label">Producer of</label>
+                <select class="select2-enable col-sm-10" id="endpointProducerProduct">
                   <option value="pdr">Paddy rice</option>
                   <option value="wht">Wheat</option>
                   <option value="gro">Cereal grains (other)</option>
@@ -299,17 +299,17 @@
                   <option value="Capital">Capital</option>
                   <option value="NatRes">Natural resources</option> -->
                 </select>
-                <button type="button" class="btn btn-primary" id="shockedProducerAddSingle">Add regional producer</button>
+                <button type="button" class="btn btn-primary" id="endpointProducerAddSingle">Add regional producer</button>
               </div>
               <div class="form-group">
-                <label for="shockedProducersList" class="control-label col-sm-2">Currently selected producers</label>
+                <label for="endpointProducersList" class="control-label col-sm-2">Currently selected producers</label>
                 <!-- <div class="col-sm-10"> -->
-                  <ul class="list-group col-sm-10" id="shockedProducersList" style="width: 60%;"></ul>
-                  <button type="button" class="btn btn-large btn-primary" id="btnShockedProducerClear">Clear selection</button>
+                  <ul class="list-group col-sm-10" id="endpointProducersList" style="width: 60%;"></ul>
+                  <button type="button" class="btn btn-large btn-primary" id="btnEndpointProducerClear">Clear selection</button>
               </div>
             </form>
           </div>
-          <div id="paramsCardStrongGroups">
+          <!-- <div id="paramsCardStrongGroups">
             <div>
               <p><strong>Country groups strongly transmitting supply shocks</strong></p>
               <p>Partitions the countries in the map into groups that transmit shocks <strong><em>strongly</em></strong> between
@@ -330,7 +330,7 @@
               </p>
               <p>Countries belonging to a group will be shown with the same colour. Countries that do not belong to any group (they don't have other countries that they transmit or receive shocks with - under the current transmission assumptions) will be left as the default colour and marked with a marker.</p>
             </div>
-          </div>
+          </div> -->
           <div>
             <br>
             <div class="row">

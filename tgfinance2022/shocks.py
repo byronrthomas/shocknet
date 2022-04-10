@@ -52,11 +52,8 @@ def calculate_all_paths(edges, starting_ids, end_ids):
                 finished_paths.append(path)
         paths_to_extend = next_to_extend
 
-    # Finally filter to those ending where we wanted
-    # print(f'Main loop done - found {len(finished_paths)} finished paths')
-    end_ids_set = set(end_ids)
-    # Drop the dummy edge from the start of the path too
-    return [path[1:] for path in finished_paths if path[-1]['to_id'] in end_ids_set]
+    # Drop the dummy edge from the start of the path, and remove any singleton paths
+    return [path[1:] for path in finished_paths if len(path) > 1]
 
 
 def fetch_neighbours(conn, vertices, edge_type):
@@ -132,6 +129,9 @@ def run_affected_countries_query(conn, supply_shocked_vertices):
     affected_country_ids = [c['v_id'] for c in affected_countries]
     starting_ids = [p['v_id'] for p in producer_vertices]
     all_paths = calculate_all_paths(edges, starting_ids, affected_country_ids)
+    # Finally filter to those ending where we wanted
+    end_ids_set = set(affected_country_ids)
+    all_paths = [path for path in all_paths if path[-1]['to_id'] in end_ids_set]
     print(f'Found {len(all_paths)} paths from producers to affected countries')
     sanity_check_paths(all_paths, starting_ids, affected_country_ids)
     reachable_edges = dedupe_edges_from_paths(all_paths)
@@ -142,7 +142,51 @@ def run_affected_countries_query(conn, supply_shocked_vertices):
         'reachable_edges': reachable_edges,
         'all_paths': all_paths}
 
+def reverse_paths(paths):
+    res = []
+    for path in paths:
+        rev_path = db.reverse_edges(path)
+        rev_path.reverse()
+        res.append(rev_path)
+    return res
 
+def run_shock_origination_query(conn, endpoint_vertices):
+    assert_conditioned(conn)
+
+    ## NEED TO SORT OUT SOURCE COUNTRIES FIRST
+    country_vertices = [v for v in endpoint_vertices if v["v_type"] == 'country']
+    print(f'Asked to resolve {len(country_vertices)} countries')
+    producer_vertices = [v for v in endpoint_vertices if v["v_type"] == 'producer']
+    print(f'Also given {len(producer_vertices)} producers')
+    if len(country_vertices) > 0:
+        producer_vertices.extend(fetch_neighbours(conn, country_vertices, db.REV_CRITICAL_INDUSTRY_EDGE))
+    print(f'Gives {len(producer_vertices)} endpoint vertices total')
+    if len([v for v in producer_vertices if v["v_type"] != 'producer']) > 0:
+        print('ERROR: got some bad vertices', [v for v in producer_vertices if v["v_type"] != 'producer'])
+        raise Exception("Cannot handle vertices that aren't producers!!")
+    cut_params = [
+        f'starting_nodes[{i}]={v["v_id"]}&starting_nodes[{i}].type=producer'
+        for i, v in enumerate(producer_vertices)]
+    cut_params = '&'.join(cut_params)
+    params = f'{cut_params}&allowed_edge_types={db.REV_TRADE_SHOCK_EDGE}&allowed_edge_types={db.REV_PRODUCTION_SHOCK_EDGE}&allowed_vertex_types={db.COUNTRY_VERTEX}&allowed_vertex_types={db.PRODUCER_VERTEX}&final_vertex_types={db.PRODUCER_VERTEX}&report_links=TRUE'
+    print('DEBUG - running with params string = ', params)
+    res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/bfs_reachability.gsql'), params)
+    edges = res[1]['@@allEdges']
+    originating_producers = res[0]['res']
+    print('pre-filtered edge count', len(edges))
+    originating_producer_ids = [c['v_id'] for c in originating_producers]
+    endpoint_ids = [p['v_id'] for p in producer_vertices]
+    # In terms of what we get back here, it's essentially a subgraph of the
+    # conditioned graph
+    # Calculate all of the paths through it for the convenience of the front-end
+    # but return all of the edges (everything reachable counts in this query,
+    # whereas in the spread analysis we focus on what countries can be reached)
+    all_paths = calculate_all_paths(edges, endpoint_ids, originating_producer_ids)
+    print(f'Found {len(all_paths)} paths')
+    return {
+        'shock_originators': originating_producers,
+        'reachable_edges': db.reverse_edges(edges),
+        'all_paths': reverse_paths(all_paths)}
 
 def format_percentage(fixed):
     return f'{fixed / 10000.0}%'

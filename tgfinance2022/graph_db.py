@@ -24,6 +24,16 @@ REV_PRODUCTION_SHOCK_EDGE='REV_production_shock'
 REV_TRADE_SHOCK_EDGE='REV_trade_shock'
 REV_HAS_INDUSTRY_EDGE='REV_has_industry'
 REV_CRITICAL_INDUSTRY_EDGE='REV_critical_industry_of'
+REVERSES = {
+    PRODUCTION_SHOCK_EDGE: REV_PRODUCTION_SHOCK_EDGE,
+    REV_PRODUCTION_SHOCK_EDGE: PRODUCTION_SHOCK_EDGE,
+    TRADE_SHOCK_EDGE: REV_TRADE_SHOCK_EDGE,
+    REV_TRADE_SHOCK_EDGE: TRADE_SHOCK_EDGE,
+    CRITICAL_INDUSTRY_EDGE: REV_CRITICAL_INDUSTRY_EDGE,
+    REV_CRITICAL_INDUSTRY_EDGE: CRITICAL_INDUSTRY_EDGE,
+    HAS_INDUSTRY_EDGE: REV_HAS_INDUSTRY_EDGE,
+    REV_HAS_INDUSTRY_EDGE: HAS_INDUSTRY_EDGE,
+}
 
 def upsert_nodes(conn, vertex_type, nodes):
     print(f"Asked to upsert {len(nodes)} {vertex_type} vertices")
@@ -161,6 +171,25 @@ STANDARD_QUERIES = [
     'resources/gsql_queries/from_tg_algo_lib/tg_scc.gsql',
     'resources/gsql_queries/from_tg_algo_lib/tg_wcc.gsql',
 ]
+
+def reverse_edge_type(t):
+    res = REVERSES.get(t)
+    if res:
+        return res
+    raise Exception(f'Cannot figure out the reverse of edge type {t}')
+
+def reverse_edges(edges):
+    res = []
+    for edge in edges:
+        res.append({
+            'to_id': edge['from_id'],
+            'to_type': edge['from_type'],
+            'from_id': edge['to_id'],
+            'from_type': edge['to_type'],
+            'e_type': reverse_edge_type(edge['e_type']),
+            'attributes': edge['attributes'],
+            'directed': edge['directed']})
+    return res
 
 if __name__ == "__main__":
     args = check_args()

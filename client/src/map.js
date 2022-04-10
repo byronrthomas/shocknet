@@ -496,6 +496,10 @@ function showPathsToEndPoint(pathsOutputElem, {graphRegion}, allPaths) {
   pathsOutputElem.innerHTML = fullPathOutput;
 }
 
+function clearPathDetails(pathsOutputElem) {
+  pathsOutputElem.innerHTML = '';
+}
+
 function formatPathSummary(path) {
   const startEdge = path[0];
   const fromText = nodeAsSourceText({v_id: startEdge.from_id, v_type: startEdge.from_type});
@@ -530,6 +534,13 @@ function showPathSummaries(allPathsListElem, allPaths, pathsOutputElem) {
   }
 }
 
+function clearPathsList(allPathsListElem) {
+  const allChildren = [...allPathsListElem.childNodes];
+  for (const child of allChildren) {
+    allPathsListElem.removeChild(child);
+  }
+}
+
 export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affectedCountryData, sectorLinkData, allPaths) {
   mode = SHOCK_TRANSFER_MODE;
   let data = {};
@@ -543,6 +554,9 @@ export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affected
   console.log('All paths = ', allPaths);
   shock_map.updateChoropleth(data, {reset: true});
 
+  // Reset the path details view
+  clearPathDetails(pathDetailsElem);
+  clearPathsList(allPathsListElem);
   // Now reset any previous click handlers
   var subunits = shock_map.svg.select('g.datamaps-subunits');
   subunits.selectAll('path.datamaps-subunit').on('click', null);

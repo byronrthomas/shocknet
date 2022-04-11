@@ -11,7 +11,10 @@ export function initShockedProducersInput({
     addWholeRegionButton,
     addSingleProducerButton,
     clearSelectionButton,
-    currentList}) {
+    currentList,
+    allProducersPrefix}) {
+    
+    state.allProducersPrefix = allProducersPrefix || "All producers from"
     
     state.regionSelect = regionSelect;
     state.productSelect = productSelect;
@@ -51,7 +54,7 @@ function addWholeRegion() {
     console.log('Will add entire region', graphReg);
     state.currentlyShocked.push({v_type: 'country', v_id: graphReg});
     console.log('Currently shocked =', state.currentlyShocked);
-    addLi(`All producers from ${regionToUserText(graphReg)}`);
+    addLi(`${state.allProducersPrefix} ${regionToUserText(graphReg)}`);
 }
 
 function addSingleProducer() {

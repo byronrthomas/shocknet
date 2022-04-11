@@ -25,7 +25,9 @@ initShockedProducersInput(
         addWholeRegionButton: document.getElementById("endpointProducerAddRegion"),
         addSingleProducerButton: document.getElementById("endpointProducerAddSingle"),
         clearSelectionButton: document.getElementById("btnEndpointProducerClear"),
-        currentList: document.getElementById("endpointProducersList")}
+        currentList: document.getElementById("endpointProducersList"),
+        allProducersPrefix: 'All critical industries of',
+    },
 );
 
 const assumptionsInfoText = document.getElementById("currentAssumptionsInfo");

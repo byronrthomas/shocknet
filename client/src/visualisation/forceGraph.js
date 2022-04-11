@@ -128,7 +128,8 @@ export function makeGraph({paths}, {
         labelIsMultiline, 
         clientWidth, 
         parentElem,
-        nodeHoverTemplate
+        nodeHoverTemplate,
+        linkHoverTemplate
     }) {
     const layout = makeLayout(paths);
     const links = paths.flat(1);
@@ -152,11 +153,23 @@ export function makeGraph({paths}, {
             .attr("viewBox", "0 -5 10 10")
             .attr("refX", 10)
             //.attr("refY", -1)
-            .attr("markerWidth", 10)
-            .attr("markerHeight", 10)
+            .attr("markerWidth", 7)
+            .attr("markerHeight", 7)
             .attr("orient", "auto")
             .append("path")
                 .attr("d", "M0,-5L10,0L0,5");
+        
+        svg.select("defs").append("marker")
+            .attr("id", 'arrow-0-red')
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 10)
+            //.attr("refY", -1)
+            .attr("markerWidth", 7)
+            .attr("markerHeight", 7)
+            .attr("orient", "auto")
+            .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "red");
         
         const node = svg.append("g")
             .attr("fill", "currentColor")
@@ -169,13 +182,25 @@ export function makeGraph({paths}, {
       
         svg.append("g")
             .attr("fill", "none")
-            .attr("stroke-width", 0.5)
+            .attr("stroke-width", 1.5)
             .selectAll("path")
             .data(links)
             .join("path")
             .attr("stroke", linkColor)
             .attr("d", (e) => linkArc(CIRCLE_RADIUS, layout.idToLocation, e))
-            .attr("marker-end", () => `url(${new URL(`#arrow-0`, location)})`);
+            .attr("marker-end", () => `url(${new URL('#arrow-0', location)})`)
+            .on('mouseover', function ( evt, d ) {
+                updatePopup(parentElem, evt, d, linkHoverTemplate);
+                d3.select(evt.currentTarget)
+                    .attr("stroke", "red")
+                    .attr("marker-end", () => `url(${new URL('#arrow-0-red', location)})`);
+            })
+            .on('mouseout', function ( evt ) {
+                d3.select(parentElem).select("." + HOVER_CLASS).style('display', 'none');
+                d3.select(evt.currentTarget)
+                    .attr("stroke", linkColor)
+                    .attr("marker-end", () => `url(${new URL('#arrow-0', location)})`);
+            });
       
         node.append("circle")
             .attr("stroke", "black")

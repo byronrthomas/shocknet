@@ -1,4 +1,4 @@
-import { edgeToDestRegion, edgeToSourceRegion, fixedPointAsString, nodeAsDestText, nodeToGraphCommod, nodeToGraphRegion } from "../graph_model/formatting";
+import { edgeToDestRegion, edgeToSourceRegion, fixedPointAsString, nodeAsDestText, nodeToGraphCommod, nodeToGraphRegion, formatGraphProducer,graphRegionToUserText, edgeToGraphRegions , nodeAsSourceText} from "../graph_model/formatting";
 import { makeGraph } from "./forceGraph"
 
 
@@ -54,6 +54,28 @@ function nodeHoverTemplate(data) {
     `<br>$${fixedPointAsString(data.market_val_dollars)}M output` ;
 }
 
+function edgeToText(edge) {
+    console.log('Got edge data', edge);
+    const tradedCommodity = formatGraphProducer(edge.from_id);
+    if (edge.e_type === 'critical_industry_of') {
+      const toReg = edgeToDestRegion(edge);
+      const toLbl = graphRegionToUserText(toReg);
+      return `${tradedCommodity} is a critical industry of ${toLbl} (${fixedPointAsString(edge.attributes.pct_of_national_output)}% of national output)`;
+    }
+    const [, toReg] = edgeToGraphRegions(edge);
+    const toLbl = graphRegionToUserText(toReg);
+    const fromText = nodeAsSourceText({v_id: edge.from_id, v_type: edge.from_type});
+    const toText = nodeAsDestText({v_id: edge.to_id, v_type: edge.to_type});
+    
+    if (edge.e_type === 'trade_shock') {
+      return `${fromText} is ${fixedPointAsString(edge.attributes.pct_of_imported_product_total)}% of the total imported into ${toLbl}, and imported [${tradedCommodity}] makes up ${fixedPointAsString(edge.attributes.pct_of_producer_input)}% of the inputs to ${toText}`
+    }
+    if (edge.e_type === 'production_shock') {
+      return `[${tradedCommodity}] in ${toLbl} makes up ${fixedPointAsString(edge.attributes.pct_of_producer_input)}% of the inputs to ${toText}`;
+    }
+    throw Error('Unknown edge type ' + edge.e_type);
+  }
+
 function shortNodeNames({id, v_type}) {
     const reg = nodeToGraphRegion({v_type, v_id: id}).toUpperCase();
     const cmd = nodeToGraphCommod({v_type, v_id: id});
@@ -72,12 +94,8 @@ export function updateNetwork(network, shocks) {
         labelIsMultiline: false,
         clientWidth: network.targetElem.clientWidth,
         parentElem: network.targetElem,
-        nodeHoverTemplate});
-    // const vis = makeGraph(shockData, {
-    //     width: 900, 
-    //     height: 600,
-    //     nodeLabel: nodeTextMultiline,
-    // });
+        nodeHoverTemplate,
+        linkHoverTemplate: edgeToText});
     network.targetElem.appendChild(vis);
 
 }

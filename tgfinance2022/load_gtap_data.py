@@ -54,7 +54,7 @@ def add_importers(conn, vxmd_df, vom_df):
     ]
     upsert_edges(conn, TRADE_EDGE, PRODUCER_VERTEX, IMPORTER_VERTEX, trade_edges)
 
-def add_producers(conn, vom_df):
+def add_producers(conn, vom_df, export_info_df):
     # filt_vom_df = vom_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
     filt_vom_df = vom_df
     print('Filtered VOM:', filt_vom_df.shape)
@@ -63,13 +63,20 @@ def add_producers(conn, vom_df):
     with_sums = pd.merge(filt_vom_df, country_sum.rename(columns={'Value': 'sum-REG'}), on=['REG'])
     with_sums['pct_of_national_output'] = with_sums['Value'] / with_sums['sum-REG']
     check_bad_percentages(with_sums, 'pct_of_national_output')
+    with_sums = pd.merge(with_sums, export_info_df, left_on=['REG', 'NSAV_COMM'], right_on=['REG', 'TRAD_COMM'], how='left')
 
-    vom_arr = with_sums[['NSAV_COMM', 'REG', 'Value', 'pct_of_national_output']].to_numpy().tolist()
+    vom_arr = with_sums[['NSAV_COMM', 'REG', 'Value', 'pct_of_national_output', 'export_val_dollars', 'pct_of_total_exports']].to_numpy().tolist()
+        
+    check_bad_percentages(with_sums, 'pct_of_national_output')
+    check_bad_percentages(with_sums, 'pct_of_total_exports')
+
     producer_nodes = [
         # Only count the commod and reg as the key
         (producer_code(product_code=v[0], country_code=v[1]), 
         {'pct_of_national_output': as_percent_fixed_point(v[3]),
          'market_val_dollars': as_fixed_point(v[2]),
+         'market_export_val_dollars': as_fixed_point(v[4]),
+         'pct_of_national_exports': as_percent_fixed_point(v[5]),
          'product_code': v[0],
          'country_code': v[1]})
           for v in vom_arr]
@@ -89,22 +96,43 @@ def add_producers(conn, vom_df):
         for v in vom_arr]
     upsert_edges(conn, PRODUCTION_EDGE, PRODUCER_VERTEX, PRODUCT_VERTEX, production_edges)
 
-def add_nodes(conn, vom_df):
+def add_nodes(conn, vom_df, vxmd_df):
+    traded_products = distinct_values_of('TRAD_COMM', vxmd_df)
     products = distinct_values_of('NSAV_COMM', vom_df)
-    add_nodes_with_code(conn, PRODUCT_VERTEX, products)
+    product_nodes = [(v, {'code': v, 'is_tradable_commodity': v in traded_products}) for v in products]
+    upsert_nodes(conn, PRODUCT_VERTEX, product_nodes)
 
     countries = distinct_values_of('REG', vom_df)
     add_nodes_with_code(conn, COUNTRY_VERTEX, countries)
 
-    add_producers(conn, vom_df)
+    add_producers(conn, vom_df, make_export_summary(vxmd_df))
 
-def add_product_input_edges(conn, vdfm_df, vifm_df, vom_df):
+def make_export_summary(vxmd_df):
+    country_sum = vxmd_df.groupby(['REG']).sum()
+    export_qty = vxmd_df.groupby(['REG', 'TRAD_COMM']).sum()
+    export_pct = pd.merge(
+        export_qty.reset_index().rename(columns={'Value': 'export_val_dollars'}), 
+        country_sum.rename(columns={'Value': 'sum-exports-REG'}), 
+        on=['REG'])
+    export_pct['pct_of_total_exports'] = export_pct['export_val_dollars'] / export_pct['sum-exports-REG']
+    return export_pct
+
+def make_input_summary(vdfm_df, vifm_df, vfm_df):
+    domestic_sum = vdfm_df.groupby(['PROD_COMM', 'REG']).sum().rename(columns={'Value': 'sum-of-domestic-inputs'})
+    imported_sum = vifm_df.groupby(['PROD_COMM', 'REG']).sum().rename(columns={'Value': 'sum-of-imported-inputs'})
+    endowment_sum = vfm_df.groupby(['PROD_COMM', 'REG']).sum().rename(columns={'Value': 'sum-of-endowment-inputs'})
+    producer_input_summary = pd.merge(domestic_sum, imported_sum, left_index=True, right_index=True)
+    producer_input_summary = pd.merge(producer_input_summary, endowment_sum, left_index=True, right_index=True)
+    producer_input_summary['sum-of-all-inputs'] = producer_input_summary['sum-of-domestic-inputs'] + producer_input_summary['sum-of-imported-inputs'] + producer_input_summary['sum-of-endowment-inputs']
+    return producer_input_summary.reset_index()
+
+
+def add_product_input_edges(conn, vdfm_df, vifm_df, vom_df, vfm_df, input_summ_df):
     filt_vdfm_df = vdfm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
     print('Filtered VDFM:', filt_vdfm_df.shape)
 
-    product_input_sum = vdfm_df.groupby(['PROD_COMM', 'REG']).sum()
-    with_sums = pd.merge(filt_vdfm_df, product_input_sum.rename(columns={'Value': 'sum-PROD_COMM-REG'}), on=['PROD_COMM', 'REG'])
-    with_sums['pct_of_producer_input'] = with_sums['Value'] / with_sums['sum-PROD_COMM-REG']
+    with_sums = pd.merge(filt_vdfm_df, input_summ_df, on=['PROD_COMM', 'REG'])
+    with_sums['pct_of_producer_input'] = with_sums['Value'] / with_sums['sum-of-all-inputs']
     with_sums = pd.merge(with_sums, vom_df.rename(columns={'NSAV_COMM': 'TRAD_COMM', 'Value': 'sum-TRAD_COMM-REG'}), on=['REG', 'TRAD_COMM'])
     with_sums['pct_of_producer_output'] = with_sums['Value'] / with_sums['sum-TRAD_COMM-REG']
 
@@ -127,12 +155,33 @@ def add_product_input_edges(conn, vdfm_df, vifm_df, vom_df):
     ]
     upsert_edges(conn, DOMESTIC_INPUT_EDGE, PRODUCER_VERTEX, PRODUCER_VERTEX, edges)
 
+
+    ## Ensure the Endowment commods add input edges too
+    filt_vfm_df = vfm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
+    print('Filtered VFM:', filt_vfm_df.shape)
+    e_with_sums = pd.merge(filt_vfm_df.rename(columns={'ENDW_COMM': 'TRAD_COMM'}), input_summ_df, on=['PROD_COMM', 'REG'])
+    e_with_sums['pct_of_producer_input'] = e_with_sums['Value'] / e_with_sums['sum-of-all-inputs']
+    e_with_sums = pd.merge(e_with_sums, vom_df.rename(columns={'NSAV_COMM': 'TRAD_COMM', 'Value': 'sum-TRAD_COMM-REG'}), on=['REG', 'TRAD_COMM'])
+    e_with_sums['pct_of_producer_output'] = e_with_sums['Value'] / e_with_sums['sum-TRAD_COMM-REG']
+    # Should be TRADed_COMM, PRODuced_COMM, REG, Value
+    vfm_arr = e_with_sums[
+        ['TRAD_COMM', 'PROD_COMM', 'REG', 'Value', 'pct_of_producer_input', 'pct_of_producer_output']].to_numpy().tolist()
+    edges = [
+        (producer_code(product_code=v[0], country_code=v[2]),
+         producer_code(product_code=v[1], country_code=v[2]),
+         {'market_val_dollars': as_fixed_point(v[3]),
+          'pct_of_producer_input': as_percent_fixed_point(v[4]),
+          'pct_of_producer_output': as_percent_fixed_point(v[5])})
+        for v in vfm_arr
+    ]
+    upsert_edges(conn, DOMESTIC_INPUT_EDGE, PRODUCER_VERTEX, PRODUCER_VERTEX, edges)
+
+
     filt_vifm_df = vifm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
     print('Filtered VIFM:', filt_vifm_df.shape)
 
-    product_input_sum = vifm_df.groupby(['PROD_COMM', 'REG']).sum()
-    i_with_sums = pd.merge(filt_vifm_df, product_input_sum.rename(columns={'Value': 'sum-PROD_COMM-REG'}), on=['PROD_COMM', 'REG'])
-    i_with_sums['pct_of_producer_input'] = i_with_sums['Value'] / i_with_sums['sum-PROD_COMM-REG']
+    i_with_sums = pd.merge(filt_vifm_df, input_summ_df, on=['PROD_COMM', 'REG'])
+    i_with_sums['pct_of_producer_input'] = i_with_sums['Value'] / i_with_sums['sum-of-all-inputs']
     # Not going to bother with the percent of importing
 
     vifm_arr = i_with_sums[
@@ -142,7 +191,7 @@ def add_product_input_edges(conn, vdfm_df, vifm_df, vom_df):
         (importer_code(product_code=v[0], country_code=v[2]),
          producer_code(product_code=v[1], country_code=v[2]),
          {'market_val_dollars': as_fixed_point(v[3]),
-             'pct_of_producer_input': as_percent_fixed_point(v[4])})
+          'pct_of_producer_input': as_percent_fixed_point(v[4])})
         for v in vifm_arr
     ]
     upsert_edges(conn, IMPORTED_INPUT_EDGE, IMPORTER_VERTEX, PRODUCER_VERTEX, edges)
@@ -165,12 +214,13 @@ def write_data(config, paths):
     conn = initDbWithToken(config, GRAPHNAME)
     clear_old_data(conn)
     vom_df = pd.read_pickle(paths['VOM'])
-    add_nodes(conn, vom_df)
     vxmd_df = pd.read_pickle(paths['VXMD'])
+    add_nodes(conn, vom_df, vxmd_df)
     add_importers(conn, vxmd_df, vom_df)
     vdfm_df = pd.read_pickle(paths['VDFM'])
     vifm_df = pd.read_pickle(paths['VIFM'])
-    add_product_input_edges(conn, vdfm_df, vifm_df, vom_df)
+    vfm_df = pd.read_pickle(paths['VFM'])
+    add_product_input_edges(conn, vdfm_df, vifm_df, vom_df, vfm_df, make_input_summary(vdfm_df, vifm_df, vfm_df))
     
     print(conn.getVertexStats('*'))
     # print(conn.getEdgeStats('*', skipNA=True))
@@ -218,7 +268,8 @@ def main(args):
             'VOM': f'{base_path}-BaseView-VOM.pkl.bz2',
             'VXMD': f'{base_path}-BaseData-VXMD.pkl.bz2',
             'VDFM': f'{base_path}-BaseData-VDFM.pkl.bz2',
-            'VIFM': f'{base_path}-BaseData-VIFM.pkl.bz2'}
+            'VIFM': f'{base_path}-BaseData-VIFM.pkl.bz2',
+            'VFM': f'{base_path}-BaseData-VFM.pkl.bz2',}
         write_data(cfg, paths)
     else:
         conn = initDbWithToken(cfg, GRAPHNAME)

@@ -1,5 +1,6 @@
 import sys
 import traceback
+import math
 import pyTigerGraph as tg
 from dotenv import dotenv_values
 
@@ -56,6 +57,8 @@ def add_nodes_with_code(conn, vertex_type, items):
 ## Using my own fixed point to avoid mucking about with floats too much
 ## Let's say 4 decimals - with percentages expressed as 10.5% rather than 0.105 (i.e. 105000 with 4dp)
 def as_fixed_point(v):
+    if math.isnan(v):
+        return 0
     return int(v * 10000)
 
 def as_percent_fixed_point(v):
@@ -92,11 +95,11 @@ def recreate_schema(drop_all, config):
     print(conn.gsql(f'''
 create vertex {COUNTRY_VERTEX} (primary_id country_id STRING, code STRING)
 
-create vertex {PRODUCT_VERTEX} (primary_id sector_id STRING, code STRING)
+create vertex {PRODUCT_VERTEX} (primary_id sector_id STRING, code STRING, is_tradable_commodity BOOL)
 
 create vertex {IMPORTER_VERTEX} (primary_id importer_id STRING, country_code STRING, product_code STRING, code STRING)
 
-create vertex {PRODUCER_VERTEX} (primary_id producer_id STRING, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT)
+create vertex {PRODUCER_VERTEX} (primary_id producer_id STRING, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT, market_export_val_dollars UINT, pct_of_national_exports UINT)
 
 create vertex {CONDITION_VERTEX} (primary_id id UINT, condition_description STRING)
 

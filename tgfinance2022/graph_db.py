@@ -114,12 +114,12 @@ create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX},
 
 create directed edge {PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, market_val_dollars INT)
 create directed edge {TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT, market_val_dollars INT)
-create directed edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
+create directed edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT, market_val_dollars INT, pct_of_national_exports INT, pct_of_national_sk_labour INT, pct_of_national_unsk_labour INT)
 create directed edge {HAS_INDUSTRY_EDGE} (from {COUNTRY_VERTEX}, to {PRODUCER_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
 
 create directed edge {REV_PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, market_val_dollars INT)
 create directed edge {REV_TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT, market_val_dollars INT)
-create directed edge {REV_CRITICAL_INDUSTRY_EDGE} (from {COUNTRY_VERTEX}, to {PRODUCER_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
+create directed edge {REV_CRITICAL_INDUSTRY_EDGE} (from {COUNTRY_VERTEX}, to {PRODUCER_VERTEX}, pct_of_national_output UINT, market_val_dollars INT, pct_of_national_exports INT, pct_of_national_sk_labour INT, pct_of_national_unsk_labour INT)
 create directed edge {REV_HAS_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
 
 create graph {GRAPHNAME} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE},{CONDITION_VERTEX}, {CRITICAL_INDUSTRY_EDGE}, {TRADE_SHOCK_EDGE}, {PRODUCTION_SHOCK_EDGE}, {HAS_INDUSTRY_EDGE}, {REV_CRITICAL_INDUSTRY_EDGE}, {REV_TRADE_SHOCK_EDGE}, {REV_PRODUCTION_SHOCK_EDGE}, {REV_HAS_INDUSTRY_EDGE})

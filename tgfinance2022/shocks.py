@@ -197,12 +197,12 @@ def format_percentage(fixed):
 def set_condition(conn, **params):
     db.upsert_nodes(conn, db.CONDITION_VERTEX, [(1, {'condition_description': json.dumps(params)})])
 
-def condition_graph_fixed_point(conn, input_thresh, import_thresh, critical_ind_thresh):
-    params = f'input_pct_thresh={input_thresh}&import_pct_thresh={import_thresh}&national_output_thresh={critical_ind_thresh}'
+def condition_graph_fixed_point(conn, input_thresh, import_thresh, critical_ind_gdp_thresh, critical_ind_export_thresh, critical_ind_skilled_lab_thresh, critical_ind_unskilled_lab_thresh, critical_ind_meets_all_thresholds):
+    params = f'input_pct_thresh={input_thresh}&import_pct_thresh={import_thresh}&national_output_thresh={critical_ind_gdp_thresh}&export_pct_thresh={critical_ind_export_thresh}&skilled_labour_pct_thresh={critical_ind_skilled_lab_thresh}&unskilled_labour_pct_thresh={critical_ind_unskilled_lab_thresh}&critical_industry_meets_all_thresholds={critical_ind_meets_all_thresholds}&debug_output=true'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/condition_graph.gsql'), params)
     print(res)
-    set_condition(conn, input_thresh=input_thresh, import_thresh=import_thresh, critical_ind_thresh=critical_ind_thresh)
+    set_condition(conn, input_thresh=input_thresh, import_thresh=import_thresh, critical_ind_gdp_thresh=critical_ind_gdp_thresh, critical_ind_export_thresh=critical_ind_export_thresh, critical_ind_skilled_lab_thresh=critical_ind_skilled_lab_thresh, critical_ind_unskilled_lab_thresh=critical_ind_unskilled_lab_thresh, critical_ind_meets_all_thresholds=critical_ind_meets_all_thresholds)
     try:
         print(conn.getEdgeStats('*'))
     except BaseException as err:

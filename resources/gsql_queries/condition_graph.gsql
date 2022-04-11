@@ -1,4 +1,6 @@
-INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, INT national_output_thresh) FOR GRAPH economic_links { 
+INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, INT national_output_thresh, INT export_pct_thresh, INT skilled_labour_pct_thresh, INT unskilled_labour_pct_thresh, BOOL critical_industry_meets_all_thresholds, BOOL debug_output = FALSE) FOR GRAPH economic_links { 
+    OrAccum @meets_output_pct_thresh, @meets_export_pct_thresh, @meets_skilled_jobs_pct_thresh, @meets_unskilled_jobs_pct_thresh;
+    MinAccum<INT> @skilled_jobs_input_pct, @unskilled_jobs_input_pct;
     // Clear edges out before inserting
     Result = SELECT p1 FROM producer:p1 -(trade_shock>:e)- producer:p2
     ACCUM DELETE(e);
@@ -35,12 +37,37 @@ INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, IN
       ACCUM INSERT INTO trade_shock VALUES(p1, p2, i.pct_of_producer_input, t.pct_of_imported_product_total, i.market_val_dollars),
       INSERT INTO REV_trade_shock VALUES(p2, p1, i.pct_of_producer_input, t.pct_of_imported_product_total, i.market_val_dollars);
   
+    inds = 
+      SELECT p
+      FROM producer:p
+      WHERE p.pct_of_national_output >= national_output_thresh OR p.pct_of_national_exports >= export_pct_thresh
+      POST-ACCUM p.@meets_export_pct_thresh += (p.pct_of_national_exports >= export_pct_thresh),
+      p.@meets_output_pct_thresh += (p.pct_of_national_output >= national_output_thresh);
+  
+    inds =
+      SELECT p
+      FROM product:prd -(produces)- producer:ep -(uses_domestic_input>:i) - producer:p
+      WHERE prd.code  == "SkLab" AND  i.pct_of_producer_output >= skilled_labour_pct_thresh
+      ACCUM p.@skilled_jobs_input_pct = i.pct_of_producer_output
+      POST-ACCUM p.@meets_skilled_jobs_pct_thresh += TRUE;
+  
+    inds =
+      SELECT p
+      FROM product:prd -(produces)- producer:ep -(uses_domestic_input>:i) - producer:p
+      WHERE prd.code  == "UnSkLab" AND  i.pct_of_producer_output >= unskilled_labour_pct_thresh
+      ACCUM p.@unskilled_jobs_input_pct = i.pct_of_producer_output
+      POST-ACCUM p.@meets_unskilled_jobs_pct_thresh += TRUE;
+  
     critical_inds = SELECT p
-      FROM producer:p -(located_in)- country:c
-      WHERE p.pct_of_national_output >= national_output_thresh
-      AND p.product_code != "CGDS"
-      ACCUM INSERT INTO critical_industry_of VALUES(p, c, p.pct_of_national_output, p.market_val_dollars),
-      INSERT INTO REV_critical_industry_of VALUES(c, p, p.pct_of_national_output, p.market_val_dollars);
+      FROM product:prd -(produces)- producer:p -(located_in)- country:c
+      WHERE prd.is_tradable_commodity
+      AND 
+      ( (critical_industry_meets_all_thresholds == TRUE AND p.@meets_export_pct_thresh == TRUE AND p.@meets_output_pct_thresh == TRUE AND p.@meets_skilled_jobs_pct_thresh == TRUE AND p.@meets_unskilled_jobs_pct_thresh == TRUE)
+        OR
+        (critical_industry_meets_all_thresholds == FALSE AND (p.@meets_export_pct_thresh OR p.@meets_output_pct_thresh OR p.@meets_skilled_jobs_pct_thresh OR p.@meets_unskilled_jobs_pct_thresh))
+      )
+      ACCUM INSERT INTO critical_industry_of VALUES(p, c, p.pct_of_national_output, p.market_val_dollars, p.pct_of_national_exports, p.@skilled_jobs_input_pct, p.@unskilled_jobs_input_pct),
+      INSERT INTO REV_critical_industry_of VALUES(c, p, p.pct_of_national_output, p.market_val_dollars, p.pct_of_national_exports, p.@skilled_jobs_input_pct, p.@unskilled_jobs_input_pct);
 
     significant_inds = SELECT c
       FROM producer:p -(located_in)- country:c
@@ -50,5 +77,20 @@ INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, IN
       INSERT INTO REV_has_industry VALUES(p, c, p.pct_of_national_output, p.market_val_dollars);
   
     PRINT "Edge insertions finished";
+  
+    IF debug_output == TRUE THEN
+      NatOutput = SELECT p FROM producer:p WHERE p.@meets_output_pct_thresh == TRUE;
+      Print NatOutput.size();
+  
+      NatExports = SELECT p FROM producer:p WHERE p.@meets_export_pct_thresh == TRUE;
+      Print NatExports.size();
+  
+      SkillLab = SELECT p FROM producer:p WHERE p.@meets_skilled_jobs_pct_thresh == TRUE;
+      Print SkillLab.size();
+  
+      UnskillLab  = SELECT p FROM producer:p WHERE p.@meets_unskilled_jobs_pct_thresh == TRUE;
+      Print UnskillLab.size();
+  
+    END;
 
 }

@@ -157,7 +157,12 @@ def add_product_input_edges(conn, vdfm_df, vifm_df, vom_df, vfm_df, input_summ_d
 
 
     ## Ensure the Endowment commods add input edges too
-    filt_vfm_df = vfm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
+    ## NOTE: it's not legit to condition the edges by value as need them
+    ## to be able to link to the producers in conditioning query - otherwise
+    ## a skilled labour thresh of 0 can filter some producers since they have
+    ## <1M demand for skilled labour and so wouldn't have an edge using filter VFM
+    ## filt_vfm_df = vfm_df.query(f'Value > {MIN_OUTPUT_M_DOLLARS}.0')
+    filt_vfm_df = vfm_df
     print('Filtered VFM:', filt_vfm_df.shape)
     e_with_sums = pd.merge(filt_vfm_df.rename(columns={'ENDW_COMM': 'TRAD_COMM'}), input_summ_df, on=['PROD_COMM', 'REG'])
     e_with_sums['pct_of_producer_input'] = e_with_sums['Value'] / e_with_sums['sum-of-all-inputs']

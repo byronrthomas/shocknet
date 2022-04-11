@@ -2,6 +2,7 @@ import axios from 'axios';
 // import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setAssumptionInfoText} from './user_input/assumptionInputs';
 import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
+import { initShockNetwork, updateNetwork } from './visualisation/shockNetwork';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -78,8 +79,7 @@ function handleSubmitAssumptions() {
 }
 document.getElementById("btnUpdateAssumptions").addEventListener('click', handleSubmitAssumptions);
 
-// const mapElem = document.getElementById("map");
-// const mapControl = initMap(mapElem);
+const shockVis = initShockNetwork(document.getElementById("networkVisualisation"));
 
 const runBtn = document.getElementById("btnRunAnalysis");
 function handleRunAnalysisClick() {
@@ -121,9 +121,7 @@ function runShockOrigination(vertices, /*handler*/) {
         {
             console.log('Got a successful response');
             console.log(response['data']);
-            // const affectedCountryData = prepareCountryData(response['data']);
-            // const sectorLinkData = prepareLinkData(response['data']);
-            // mapShocks(mapControl, pathsOutputElem, allPathsListElem, affectedCountryData, sectorLinkData, response['data']['all_paths']);
+            updateNetwork(shockVis, response['data']);
         })
         .catch(function (error) 
         {

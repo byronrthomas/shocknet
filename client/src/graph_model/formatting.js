@@ -1,4 +1,4 @@
-import {regionNamesToMultiCountries, commodityCodesToNames} from './refData';
+import {regionNamesToMultiCountries, commodityCodesToNames, commodityCodesToShortNames} from './refData';
 import iso from 'iso-3166-1';
 
 export function codeToCountry(code) {
@@ -52,6 +52,16 @@ export function nodeToGraphRegion({v_type, v_id}) {
     unknownNodeType({v_type, v_id});
 }
 
+export function nodeToGraphCommod({v_type, v_id}) {
+  if (v_type === 'producer') {
+      return formatGraphProducer(v_id, true);
+  }
+  if (v_type === 'country') {
+      return null;
+  }
+  unknownNodeType({v_type, v_id});
+}
+
 export function edgeToSourceRegion(edge) {
     return nodeToGraphRegion({v_type: edge.from_type, v_id: edge.from_id});
 }
@@ -77,13 +87,13 @@ export function graphRegionToUserText(region) {
 
 export const overrideRegionNameForCode = findOverrideNames(regionNamesToMultiCountries);
 
-export function formatGraphProducer(graphProducer) {
+export function formatGraphProducer(graphProducer, useShortName) {
     if (graphProducer.length < 7) {
       // Should be a [three letter country code]-[three letter commod code] pattern
       console.log('WARN: cannot format as a producer:', graphProducer);
     }
     const graphComm = graphProducer.substring(4)
-    const mapComm = commodityCodesToNames[graphComm];
+    const mapComm = useShortName ? commodityCodesToShortNames[graphComm] : commodityCodesToNames[graphComm];
     if (!mapComm) {
       console.log(`WARN: cannot find any corresponding commodity name for ${graphComm} - producer ${graphProducer}`);
     }

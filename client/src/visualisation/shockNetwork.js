@@ -1,4 +1,4 @@
-import { edgeToDestRegion, edgeToSourceRegion, nodeToUserTextComponents } from "../graph_model/formatting";
+import { edgeToDestRegion, edgeToSourceRegion, nodeToGraphCommod, nodeToGraphRegion } from "../graph_model/formatting";
 import { makeGraph } from "./forceGraph"
 
 
@@ -54,12 +54,15 @@ function preprocessShockData(edges) {
     return {nodes, links};
 }
 
-function nodeTextMultiline({id, v_type}) {
-    const comps = nodeToUserTextComponents({v_id: id, v_type: v_type});
-    if (comps.length > 1) {
-        comps[0] = comps[0] + " in";
-    }
-    return comps;
+function nodeHoverTemplate(data) {
+    console.log('Got data', data);
+    return `<strong>Hello!</strong>`;
+}
+
+function shortNodeNames({id, v_type}) {
+    const reg = nodeToGraphRegion({v_type, v_id: id}).toUpperCase();
+    const cmd = nodeToGraphCommod({v_type, v_id: id});
+    return cmd ? `${cmd} (${reg})` : reg;
 }
 
 export function updateNetwork(network, shocks) {
@@ -70,7 +73,13 @@ export function updateNetwork(network, shocks) {
     annotateShockPaths(shockPaths);
     console.log('Annotated shock paths =', shockPaths);
     shockData.paths = shockPaths;
-    const vis = makeGraph(shockData, {nodeLabel: nodeTextMultiline});
+
+    const vis = makeGraph(shockData, {
+        nodeLabel: shortNodeNames, 
+        labelIsMultiline: false,
+        clientWidth: network.targetElem.clientWidth,
+        parentElem: network.targetElem,
+        nodeHoverTemplate});
     // const vis = makeGraph(shockData, {
     //     width: 900, 
     //     height: 600,

@@ -1,4 +1,4 @@
-import { edgeToGraphRegions, nodeToUserTextComponents } from "../graph_model/formatting";
+import { edgeToDestRegion, edgeToSourceRegion, nodeToUserTextComponents } from "../graph_model/formatting";
 import { makeGraph } from "./forceGraph"
 
 
@@ -16,20 +16,38 @@ function clearChildren(tgt) {
     }
 }
 
+function makeNodeForDestination(edge) {
+    const toReg = edgeToDestRegion(edge);
+    return {id: edge.to_id, group: toReg, v_type: edge.to_type}
+}
+
+function makeNodeForSource(edge) {
+    const fromReg = edgeToSourceRegion(edge);
+    return {id: edge.from_id, group: fromReg, v_type: edge.from_type}
+}
+
+function annotateShockPaths(paths) {
+    for (const path of paths) {
+        for (const edge of path) {
+            edge.source = makeNodeForSource(edge);
+            edge.target = makeNodeForDestination(edge);
+        }
+    }
+}
+
 function preprocessShockData(edges) {
     const nodes = [];
     const links = [];
     const seenNodes = new Set();
     for (const e of edges) {
         console.log('Preprocessing', e);
-        const [fromReg, toReg] = edgeToGraphRegions(e);
         if (!seenNodes.has(e.from_id)) {
             seenNodes.add(e.from_id);
-            nodes.push({id: e.from_id, group: fromReg, v_type: e.from_type});
+            nodes.push(makeNodeForSource(e));
         }
         if (!seenNodes.has(e.to_id)) {
             seenNodes.add(e.to_id);
-            nodes.push({id: e.to_id, group: toReg, v_type: e.to_type});
+            nodes.push(makeNodeForDestination(e));
         }
         links.push({source: e.from_id, target: e.to_id});
     }
@@ -48,10 +66,16 @@ export function updateNetwork(network, shocks) {
     clearChildren(network.targetElem);
     console.log('Received shocks', shocks);
     const shockData = preprocessShockData(shocks['reachable_edges']);
-    const chart = makeGraph(shockData, {
-        width: 900, 
-        height: 600,
-        nodeLabel: nodeTextMultiline,
-    });
-    network.targetElem.appendChild(chart);
+    const shockPaths = shocks['all_paths'];
+    annotateShockPaths(shockPaths);
+    console.log('Annotated shock paths =', shockPaths);
+    shockData.paths = shockPaths;
+    const vis = makeGraph(shockData, {nodeLabel: nodeTextMultiline});
+    // const vis = makeGraph(shockData, {
+    //     width: 900, 
+    //     height: 600,
+    //     nodeLabel: nodeTextMultiline,
+    // });
+    network.targetElem.appendChild(vis);
+
 }

@@ -1,4 +1,4 @@
-import { edgeToGraphRegions, nodeAsDestText } from "../graph_model/formatting";
+import { edgeToGraphRegions, nodeToUserTextComponents } from "../graph_model/formatting";
 import { makeGraph } from "./forceGraph"
 
 
@@ -36,6 +36,14 @@ function preprocessShockData(edges) {
     return {nodes, links};
 }
 
+function nodeTextMultiline({id, v_type}) {
+    const comps = nodeToUserTextComponents({v_id: id, v_type: v_type});
+    if (comps.length > 1) {
+        comps[0] = comps[0] + " in";
+    }
+    return comps;
+}
+
 export function updateNetwork(network, shocks) {
     clearChildren(network.targetElem);
     console.log('Received shocks', shocks);
@@ -43,7 +51,7 @@ export function updateNetwork(network, shocks) {
     const chart = makeGraph(shockData, {
         width: 900, 
         height: 600,
-        nodeLabel: d => `${nodeAsDestText({v_id: d.id, v_type: d.v_type})}`,
+        nodeLabel: nodeTextMultiline,
     });
     network.targetElem.appendChild(chart);
 }

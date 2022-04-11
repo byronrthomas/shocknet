@@ -90,16 +90,20 @@ export function formatGraphProducer(graphProducer) {
     return mapComm;
   }
 
-function nodeToUserText({v_type, v_id}, joiningWord) {
+export function nodeToUserTextComponents({v_type, v_id}) {
     const ctry_lbl = graphRegionToUserText(nodeToGraphRegion({v_type, v_id}));
     if (v_type === 'producer') {
       const commodity = formatGraphProducer(v_id);
-      return `[${commodity}] ${joiningWord} ${ctry_lbl}`;
+      return [commodity, ctry_lbl];
     }
     if (v_type === 'country') {
-      return `${ctry_lbl}`;
+      return [ctry_lbl];
     }
     unknownNodeType({v_type, v_id});
+  }
+
+export function nodeToUserText(node, joiningWord) {
+    return joiningWord.join(nodeToUserTextComponents(node));
   }
   
   export function nodeAsSourceText({v_type, v_id}) {

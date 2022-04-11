@@ -3,7 +3,7 @@ import axios from 'axios';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setAssumptionInfoText} from './user_input/assumptionInputs';
 import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
 import { initShockNetwork, updateNetwork } from './visualisation/shockNetwork';
-import {shockOriginationGbrAus} from './trialData';
+import { shockOriginationFiveCountries } from './trialData';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -130,6 +130,7 @@ function runShockOrigination(vertices, /*handler*/) {
         });    
 }
 
-updateNetwork(shockVis, shockOriginationGbrAus);
+// updateNetwork(shockVis, shockOriginationGbrAus);
+updateNetwork(shockVis, shockOriginationFiveCountries)
 
 getInitialAssumptions();

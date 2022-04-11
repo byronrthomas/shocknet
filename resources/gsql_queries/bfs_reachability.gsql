@@ -19,7 +19,7 @@ INTERPRET QUERY bfs_reachability1(SET<VERTEX> starting_nodes, SET<STRING> allowe
   
   FINAL = {allowed_vertex_types};
   res = SELECT n FROM FINAL:n 
-  WHERE n.@visited == TRUE AND n NOT IN starting_nodes;
+  WHERE n.@visited == TRUE;
   PRINT res; 
   IF report_links == TRUE THEN
     PRINT @@allEdges;

@@ -172,10 +172,10 @@ def run_shock_origination_query(conn, endpoint_vertices):
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/bfs_reachability.gsql'), params)
     edges = res[1]['@@allEdges']
-    originating_producers = res[0]['res']
+    all_nodes = res[0]['res']
     print('pre-filtered edge count', len(edges))
-    originating_producer_ids = [c['v_id'] for c in originating_producers]
     endpoint_ids = [p['v_id'] for p in producer_vertices]
+    originating_producer_ids = [p['v_id'] for p in all_nodes if p['v_id'] not in endpoint_ids]
     # In terms of what we get back here, it's essentially a subgraph of the
     # conditioned graph
     # Calculate all of the paths through it for the convenience of the front-end
@@ -183,8 +183,11 @@ def run_shock_origination_query(conn, endpoint_vertices):
     # whereas in the spread analysis we focus on what countries can be reached)
     all_paths = calculate_all_paths(edges, endpoint_ids, originating_producer_ids)
     print(f'Found {len(all_paths)} paths')
+    edge_source_ids = {e['from_id'] for e in edges}
+    edge_dest_ids = {e['to_id'] for e in edges}
+    reachable_node_ids = edge_source_ids.union(edge_dest_ids)
     return {
-        'shock_originators': originating_producers,
+        'reachable_nodes': [node for node in all_nodes if node['v_id'] in reachable_node_ids],
         'reachable_edges': db.reverse_edges(edges),
         'all_paths': reverse_paths(all_paths)}
 

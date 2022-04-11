@@ -1,5 +1,6 @@
 import Datamap from 'datamaps';
-import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText } from './graph_model/formatting';
+import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText } from '../graph_model/formatting';
+import { distinctColor } from './colors';
 
 var defaultOptions = {
     scope: 'world',
@@ -631,11 +632,7 @@ export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affected
 
 }
 
-// eslint-disable-next-line no-unused-vars
-function distinctColor(colorNum, colors){
-  if (colors < 1) colors = 1; // defaults to one color - avoid divide by zero
-  return "hsl(" + (colorNum * (360 / colors) % 360) + ",100%,50%)";
-}
+
 
 export function mapShockGroups(shock_map, {communities, singletons}, weak_groups) {
   mode = SHOCK_GROUPING_MODE;

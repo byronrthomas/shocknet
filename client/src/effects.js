@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './map';
+import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './visualisation/map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setAssumptionInfoText} from './user_input/assumptionInputs';
 import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
 import {initParamsCardSwitcher} from './user_input/paramsCardSwitcher';

@@ -1,4 +1,4 @@
-import { edgeToDestRegion, edgeToSourceRegion, nodeToGraphCommod, nodeToGraphRegion } from "../graph_model/formatting";
+import { edgeToDestRegion, edgeToSourceRegion, fixedPointAsString, nodeAsDestText, nodeToGraphCommod, nodeToGraphRegion } from "../graph_model/formatting";
 import { makeGraph } from "./forceGraph"
 
 
@@ -16,47 +16,42 @@ function clearChildren(tgt) {
     }
 }
 
-function makeNodeForDestination(edge) {
+function makeNodeForDestination(edge, nodeDataById) {
     const toReg = edgeToDestRegion(edge);
-    return {id: edge.to_id, group: toReg, v_type: edge.to_type}
+    const nodeDetails = nodeDataById[edge.to_id];
+    return {id: edge.to_id, v_id: edge.to_id, group: toReg, v_type: edge.to_type, ...nodeDetails}
 }
 
-function makeNodeForSource(edge) {
+function makeNodeForSource(edge, nodeDataById) {
     const fromReg = edgeToSourceRegion(edge);
-    return {id: edge.from_id, group: fromReg, v_type: edge.from_type}
+    const nodeDetails = nodeDataById[edge.from_id];
+    return {id: edge.from_id, v_id: edge.from_id, group: fromReg, v_type: edge.from_type, ...nodeDetails}
 }
 
-function annotateShockPaths(paths) {
+function annotateShockPaths(paths, reachableNodes) {
+    const nodeDataById = {};
+    reachableNodes.forEach(d => nodeDataById[d['v_id']] = d['attributes']);
     for (const path of paths) {
         for (const edge of path) {
-            edge.source = makeNodeForSource(edge);
-            edge.target = makeNodeForDestination(edge);
+            edge.source = makeNodeForSource(edge, nodeDataById);
+            edge.target = makeNodeForDestination(edge, nodeDataById);
         }
     }
-}
-
-function preprocessShockData(edges) {
-    const nodes = [];
-    const links = [];
-    const seenNodes = new Set();
-    for (const e of edges) {
-        console.log('Preprocessing', e);
-        if (!seenNodes.has(e.from_id)) {
-            seenNodes.add(e.from_id);
-            nodes.push(makeNodeForSource(e));
-        }
-        if (!seenNodes.has(e.to_id)) {
-            seenNodes.add(e.to_id);
-            nodes.push(makeNodeForDestination(e));
-        }
-        links.push({source: e.from_id, target: e.to_id});
-    }
-    return {nodes, links};
 }
 
 function nodeHoverTemplate(data) {
-    console.log('Got data', data);
-    return `<strong>Hello!</strong>`;
+    // console.log('Got data', data);
+    let lbl;
+    try {
+        lbl = nodeAsDestText(data);
+    } catch (e) {
+        console.log(e);
+    }
+    
+    // console.log('lbl', lbl);
+    return `<strong>${lbl}</strong>` +
+    `<br>${fixedPointAsString(data.pct_of_national_output)}% of National Output` +
+    `<br>$${fixedPointAsString(data.market_val_dollars)}M output` ;
 }
 
 function shortNodeNames({id, v_type}) {
@@ -68,13 +63,11 @@ function shortNodeNames({id, v_type}) {
 export function updateNetwork(network, shocks) {
     clearChildren(network.targetElem);
     console.log('Received shocks', shocks);
-    const shockData = preprocessShockData(shocks['reachable_edges']);
-    const shockPaths = shocks['all_paths'];
-    annotateShockPaths(shockPaths);
+    const shockPaths = [...shocks['all_paths']];
+    annotateShockPaths(shockPaths, shocks['reachable_nodes']);
     console.log('Annotated shock paths =', shockPaths);
-    shockData.paths = shockPaths;
 
-    const vis = makeGraph(shockData, {
+    const vis = makeGraph({paths: shockPaths}, {
         nodeLabel: shortNodeNames, 
         labelIsMultiline: false,
         clientWidth: network.targetElem.clientWidth,

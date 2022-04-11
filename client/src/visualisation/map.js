@@ -1,5 +1,5 @@
 import Datamap from 'datamaps';
-import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText } from '../graph_model/formatting';
+import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText, formatFixedPoint } from '../graph_model/formatting';
 import { distinctColor } from './colors';
 
 var defaultOptions = {
@@ -287,18 +287,6 @@ function handleArcs (layer, data, options) {
       .remove();
   }
 
-
-
-
-const FIXED_POINT_DIVISOR = 10000;
-function formatFixedPoint(fixedPtNum) {
-  return fixedPtNum / FIXED_POINT_DIVISOR;
-}
-
-function formatFixedPercentage(fixedPtNum) {
-  return formatFixedPoint(fixedPtNum);
-}
-
 export function prepareCountryData(rspData) {
   let allCountries = new Set(); 
   rspData.affected_countries.forEach(x => allCountries.add(x.v_id));
@@ -318,9 +306,9 @@ export function prepareCountryData(rspData) {
       // console.log(`Adding industry ${edge.from_id} to country ${cnt}`);
       countryData[cnt].shockedIndustries.push({
         name: formatGraphProducer(edge.from_id),
-        gdp_pct: formatFixedPercentage(edge.attributes.pct_of_national_output),
+        gdp_pct: formatFixedPoint(edge.attributes.pct_of_national_output),
       });
-      countryData[cnt].impactedIndustryGdpPct += formatFixedPercentage(edge.attributes.pct_of_national_output);
+      countryData[cnt].impactedIndustryGdpPct += formatFixedPoint(edge.attributes.pct_of_national_output);
     }
   }
   return countryData;
@@ -460,7 +448,7 @@ function edgeToText(edge) {
   if (edge.e_type === 'critical_industry_of') {
     const toReg = edgeToDestRegion(edge);
     const toLbl = graphRegionToUserText(toReg);
-    return `${tradedCommodity} is a critical industry of ${toLbl} (${pctAsString(formatFixedPercentage(edge.attributes.pct_of_national_output))}% of national output)`;
+    return `${tradedCommodity} is a critical industry of ${toLbl} (${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_output))}% of national output)`;
   }
   const [, toReg] = edgeToGraphRegions(edge);
   const toLbl = graphRegionToUserText(toReg);
@@ -468,10 +456,10 @@ function edgeToText(edge) {
   const toText = nodeAsDestText({v_id: edge.to_id, v_type: edge.to_type});
   
   if (edge.e_type === 'trade_shock') {
-    return `${fromText} -> ${toText}: ${fromText} is ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_imported_product_total))}% of the total imported into ${toLbl}, and imported [${tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_producer_input))}% of the inputs to ${toText}`
+    return `${fromText} -> ${toText}: ${fromText} is ${pctAsString(formatFixedPoint(edge.attributes.pct_of_imported_product_total))}% of the total imported into ${toLbl}, and imported [${tradedCommodity}] makes up ${pctAsString(formatFixedPoint(edge.attributes.pct_of_producer_input))}% of the inputs to ${toText}`
   }
   if (edge.e_type === 'production_shock') {
-    return `${fromText} -> ${toText}: [${tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(edge.attributes.pct_of_producer_input))}% of the inputs to ${toText}`;
+    return `${fromText} -> ${toText}: [${tradedCommodity}] makes up ${pctAsString(formatFixedPoint(edge.attributes.pct_of_producer_input))}% of the inputs to ${toText}`;
   }
   throw Error('Unknown edge type ' + edge.e_type);
 }
@@ -589,7 +577,7 @@ export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affected
     const toCountry = codeToCountry(data.destination);
     const fromLbl = data.fromOverride ? data.fromOverride : fromCountry;
     const toLbl = data.toOverride ? data.toOverride : toCountry;
-    const transferDetails = data.transfers.map(tr => `[${tr.tradedCommodity}] from ${fromLbl} -> [${tr.producedCommodity}] in ${toLbl}: [${tr.tradedCommodity}] from ${fromLbl} is ${pctAsString(formatFixedPercentage(tr.pct_of_imported_product_total))}% of the total imported into ${toLbl}, and imported [${tr.tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(tr.pct_of_producer_input))}% of the inputs to [${tr.producedCommodity}] in ${toLbl}`);
+    const transferDetails = data.transfers.map(tr => `[${tr.tradedCommodity}] from ${fromLbl} -> [${tr.producedCommodity}] in ${toLbl}: [${tr.tradedCommodity}] from ${fromLbl} is ${pctAsString(formatFixedPoint(tr.pct_of_imported_product_total))}% of the total imported into ${toLbl}, and imported [${tr.tradedCommodity}] makes up ${pctAsString(formatFixedPoint(tr.pct_of_producer_input))}% of the inputs to [${tr.producedCommodity}] in ${toLbl}`);
     return '<div class="hoverinfo"><strong>Shock: ' + fromLbl + ' -> ' + toLbl + '</strong><br>'
     + transferDetails.join('<br>') + '</div>';
   }
@@ -622,7 +610,7 @@ export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affected
   shock_map.bubbles(bubbles, {
     popupTemplate: function(geo, data) {
       const lbl = data.countryOverride ?? codeToCountry(data.centered);
-      const transferDetails = data.transfers.map(tr => `${tr.tradedCommodity} -> ${tr.producedCommodity}: [${tr.tradedCommodity}] makes up ${pctAsString(formatFixedPercentage(tr.pct_of_producer_input))}% of the inputs to [${tr.producedCommodity}] in ${lbl}`);
+      const transferDetails = data.transfers.map(tr => `${tr.tradedCommodity} -> ${tr.producedCommodity}: [${tr.tradedCommodity}] makes up ${pctAsString(formatFixedPoint(tr.pct_of_producer_input))}% of the inputs to [${tr.producedCommodity}] in ${lbl}`);
       return '<div class="hoverinfo"><strong>Local shock transfer in ' + lbl +
         '</strong><br>' + transferDetails.join('<br>') + '</div>';
     }

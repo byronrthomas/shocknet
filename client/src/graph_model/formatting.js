@@ -113,7 +113,7 @@ export function nodeToUserTextComponents({v_type, v_id}) {
   }
 
 export function nodeToUserText(node, joiningWord) {
-    return joiningWord.join(nodeToUserTextComponents(node));
+    return nodeToUserTextComponents(node).join(` ${joiningWord} `);
   }
   
   export function nodeAsSourceText({v_type, v_id}) {
@@ -123,3 +123,20 @@ export function nodeToUserText(node, joiningWord) {
   export function nodeAsDestText({v_type, v_id}) {
     return nodeToUserText({v_type, v_id}, 'in');
   }
+
+const FIXED_POINT_DIVISOR = 10000;
+export function formatFixedPoint(fixedPtNum) {
+  return fixedPtNum / FIXED_POINT_DIVISOR;
+}
+  
+export function fixedPointAsString(fixedPtNum, dp) {
+  dp = dp || 1;
+  let result = formatFixedPoint(fixedPtNum).toFixed(dp);
+  const dpPosition = result.indexOf('.');
+  let nextCommaPos = dpPosition - 3;
+  while (nextCommaPos > 0) {
+    result = result.substring(0, nextCommaPos) + ',' + result.substring(nextCommaPos);
+    nextCommaPos -= 3;
+  }
+  return result;
+}

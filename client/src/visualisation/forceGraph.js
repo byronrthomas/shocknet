@@ -147,10 +147,8 @@ export function makeGraph({paths}, {
         .style("font", "10px sans-serif");
       
         // Use a triangular marker for the end point
-        svg.append("defs").selectAll("marker")
-            .data([0])
-            .join("marker")
-            .attr("id", d => `arrow-${d}`)
+        svg.append("defs").append("marker")
+            .attr("id", `arrow-0`)
             .attr("viewBox", "0 -5 10 10")
             .attr("refX", 10)
             //.attr("refY", -1)

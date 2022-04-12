@@ -4,6 +4,12 @@ INTERPRET QUERY post_process_producers(/* Parameters here */) FOR GRAPH economic
     (makes conditioning logic and UI presentation much more convenient).
 */
   MinAccum<INT> @pct_of_sk_lab, @pct_of_unsk_lab;
+  /* Write query logic here */ 
+  NonTradableProducers =
+    SELECT ep FROM product:prd -(produces)- producer:ep
+    WHERE prd.is_tradable_commodity  == FALSE
+    ACCUM ep.@pct_of_sk_lab += 0, ep.@pct_of_unsk_lab += 0;
+  
   SkLabProducers = 
     SELECT ep FROM product:prd -(produces)- producer:ep
     WHERE prd.code  == "SkLab";

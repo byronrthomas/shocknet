@@ -138,7 +138,11 @@ function runShockOrigination(vertices, /*handler*/) {
         });    
 }
 
-// updateNetwork(shockVis, shockOriginationGbrAus);
-updateNetwork(shockVis, shockOriginationFiveCountries)
+// If a quick input for testing is needed
+const FILL_WITH_SAMPLE_DATA = !true;
+if (FILL_WITH_SAMPLE_DATA) {
+    // updateNetwork(shockVis, shockOriginationGbrAus);
+    updateNetwork(shockVis, shockOriginationFiveCountries)
+}
 
 getInitialAssumptions();

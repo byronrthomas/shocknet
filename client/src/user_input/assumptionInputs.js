@@ -86,9 +86,10 @@ function getCtrlInput(name) {
     }
 
     console.log('Details.control = ', details.control);
+    const minAllowed = details.isCriticalIndRelated ? 0 : 1;
     const val = details.control.value;
-    if ( val < 0 || val > 100 ) {
-        return {error: `${details.userText} must be set between 0..100 inclusive, currently ${val}%`};
+    if ( val < minAllowed || val > 100 ) {
+        return {error: `${details.userText} must be set between ${minAllowed}..100 inclusive, currently ${val}%`};
     }
     return {success: ctrlInputToFixedNum(val)};
 }

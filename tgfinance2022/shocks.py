@@ -198,6 +198,8 @@ def set_condition(conn, **params):
     db.upsert_nodes(conn, db.CONDITION_VERTEX, [(1, {'condition_description': json.dumps(params)})])
 
 def condition_graph_fixed_point(conn, input_thresh, import_thresh, critical_ind_gdp_thresh, critical_ind_export_thresh, critical_ind_skilled_lab_thresh, critical_ind_unskilled_lab_thresh, critical_ind_meets_all_thresholds):
+    if input_thresh < db.as_fixed_point(1) or import_thresh < db.as_fixed_point(1):
+        raise Exception("Cannot condition graph with input threshold < 1% or import threshold < 1%")
     params = f'input_pct_thresh={input_thresh}&import_pct_thresh={import_thresh}&national_output_thresh={critical_ind_gdp_thresh}&export_pct_thresh={critical_ind_export_thresh}&skilled_labour_pct_thresh={critical_ind_skilled_lab_thresh}&unskilled_labour_pct_thresh={critical_ind_unskilled_lab_thresh}&critical_industry_meets_all_thresholds={critical_ind_meets_all_thresholds}&debug_output=true'
     print('DEBUG - running with params string = ', params)
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/condition_graph.gsql'), params)

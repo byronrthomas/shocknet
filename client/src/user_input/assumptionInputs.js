@@ -6,15 +6,45 @@ const namesToInfo = {
     import_thresh: { 
         userText: 'Imported amount threshold (y%)',
     },
-    critical_ind_thresh: { 
-        userText: 'Critical industry threshold (z% GDP)',
+    critical_ind_gdp_thresh: { 
+        userText: 'National output threshold (z1%)',
+        isCriticalIndRelated: true,
+    },
+    critical_ind_export_thresh: { 
+        userText: 'Export threshold (z2%)',
+        isCriticalIndRelated: true,
+    }, 
+    critical_ind_skilled_lab_thresh: { 
+        userText: 'Skilled labour threshold (z3%)',
+        isCriticalIndRelated: true,
+    }, 
+    critical_ind_unskilled_lab_thresh: { 
+        userText: 'Unskilled labour threshold (z4%)',
+        isCriticalIndRelated: true,
+    },
+    critical_ind_meets_all_thresholds: { 
+        userText: 'Critical industry meets ALL/SOME thresholds',
+        isCriticalIndRelated: true,
     },
 }
 
-export function initAssumptionsInput(inputThreshInput, importThreshInput, criticalIndInput) {
+export function initAssumptionsInput({
+        inputThreshInput, 
+        importThreshInput, 
+        criticalIndGdpInput,
+        criticalIndExportInput,
+        criticalIndSkLabInput,
+        criticalIndUnSkLabInput,
+        criticalIndComboAllRadio,
+        criticalIndComboSomeRadio,}) {
     namesToInfo.input_thresh.control = inputThreshInput;
     namesToInfo.import_thresh.control = importThreshInput;
-    namesToInfo.critical_ind_thresh.control = criticalIndInput;
+    namesToInfo.critical_ind_gdp_thresh.control = criticalIndGdpInput;
+    namesToInfo.critical_ind_export_thresh.control = criticalIndExportInput;
+    namesToInfo.critical_ind_skilled_lab_thresh.control = criticalIndSkLabInput;
+    namesToInfo.critical_ind_unskilled_lab_thresh.control = criticalIndUnSkLabInput;
+    namesToInfo.critical_ind_meets_all_thresholds.all_radio = criticalIndComboAllRadio;
+    namesToInfo.critical_ind_meets_all_thresholds.some_radio = criticalIndComboSomeRadio;
 }
 
 function ctrlInputToFixedNum(inp) {
@@ -28,7 +58,16 @@ function fixedNumToCtrlInput(num) {
 export function setInitialAssumptionState(state) {
     for (var k in namesToInfo) {
         const newVal = state[k];
-        namesToInfo[k].control.value = fixedNumToCtrlInput(newVal); 
+        if (isComboControl(k)) {
+            if (newVal) {
+                namesToInfo[k].all_radio.checked = true;
+            } else {
+                namesToInfo[k].some_radio.checked = true;
+            }
+            
+        } else {
+            namesToInfo[k].control.value = fixedNumToCtrlInput(newVal); 
+        }
     }
 }
 
@@ -40,6 +79,12 @@ function getCtrlInput(name) {
     }
     console.log('Accessing name', name);
     console.log('Got details = ', details);
+    if (isComboControl(name)) {
+        const val = details.all_radio.checked && !details.some_radio.checked;
+        console.log('Assessed ALL thresholds to be', val);
+        return {success: val};
+    }
+
     console.log('Details.control = ', details.control);
     const val = details.control.value;
     if ( val < 0 || val > 100 ) {
@@ -65,12 +110,25 @@ export function getAssumptionInputState() {
     return {success: result};
 }
 
+function isComboControl(key) {
+    return key === 'critical_ind_meets_all_thresholds';
+}
+
 export function setAssumptionInfoText(textElem, data) {
-    const asText = [];
-    for (var nm in namesToInfo) {
-        asText.push(`${namesToInfo[nm].userText}: ${fixedNumToCtrlInput(data[nm])}`);
+    const basicTexts = [];
+    const criticalIndRelatedTexts = [];
+    for (const nm in namesToInfo) {
+        const asText = 
+            isComboControl(nm) ?
+            `${namesToInfo[nm].userText}: <em>${data[nm] ? "ALL" : "SOME"}</em>` :
+            `${namesToInfo[nm].userText}: ${fixedNumToCtrlInput(data[nm])}%`;
+        if (namesToInfo[nm].isCriticalIndRelated) {
+            criticalIndRelatedTexts.push(asText);
+        } else {
+            basicTexts.push(asText);
+        }
     }
-    const infoText = asText.join('; ');
-    console.log('Attempting to set span text to be', infoText);
-    textElem.textContent = infoText;
+    const infoText = `<strong>Shock Transfer assumptions:</strong> ${basicTexts.join('; ')}.<br><strong>Critical Industry Thresholds:</strong> ${criticalIndRelatedTexts.join('; ')}`;
+    console.log('Attempting to set span HTML to be', infoText);
+    textElem.innerHTML = infoText;
 }

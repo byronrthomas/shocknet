@@ -13,10 +13,16 @@ const axInstance = axios.create({
     timeout: 60000
   });
 
-initAssumptionsInput(
-    document.getElementById("assumptionInputPct"),
-    document.getElementById("assumptionImportPct"),
-    document.getElementById("assumptionCriticalIndPct"));
+  initAssumptionsInput({
+    inputThreshInput: document.getElementById("assumptionInputPct"), 
+    importThreshInput: document.getElementById("assumptionImportPct"), 
+    criticalIndGdpInput: document.getElementById("critIndOutputPctInput"),
+    criticalIndExportInput: document.getElementById("critIndExportPctInput"),
+    criticalIndSkLabInput: document.getElementById("critIndSkLabPctInput"),
+    criticalIndUnSkLabInput: document.getElementById("critIndUnSkLabPctInput"),
+    criticalIndComboAllRadio: document.getElementById("optionsCritialIndAllThresh"),
+    criticalIndComboSomeRadio: document.getElementById("optionsCritialIndSomeThresh"),
+});
 
 initShockedProducersInput(
     {

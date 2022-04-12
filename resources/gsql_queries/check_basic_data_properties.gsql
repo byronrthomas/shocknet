@@ -1,0 +1,71 @@
+INTERPRET QUERY check_data_5(/* Parameters here */) FOR GRAPH economic_links { 
+  TYPEDEF TUPLE<Vertex<producer> from_producer, Vertex<importer> to_importer> tradeRec;
+  TYPEDEF TUPLE<Vertex<producer> from_producer, Vertex<producer> to_producer> domesticInputRec;
+  TYPEDEF TUPLE<Vertex<importer> from_importer, Vertex<producer> to_producer> importedInputRec;
+  SetAccum<tradeRec> @@bad_trades;
+  SetAccum<domesticInputRec> @@bad_dom_inputs;
+  SetAccum<importedInputRec> @@bad_imp_inputs;
+  SetAccum<EDGE> @@edges_with_bad_pcts;
+  /* Write query logic here */ 
+  result = 
+    SELECT p FROM producer:p -(trades>:e)- importer:i 
+    WHERE p.country_code == i.country_code or p.product_code != i.product_code
+    ACCUM @@bad_trades += tradeRec(p, i);
+  
+  result = 
+    SELECT p FROM producer:p -(uses_domestic_input>:e)- producer:i 
+    WHERE p.country_code != i.country_code
+    ACCUM @@bad_dom_inputs += domesticInputRec(p, i);
+  
+  result = 
+    SELECT p FROM importer:i -(uses_imported_input>:e)- producer:p
+    WHERE p.country_code != i.country_code
+    ACCUM @@bad_imp_inputs += importedInputRec(i, p);
+  
+  print @@bad_trades;
+  print @@bad_dom_inputs;
+  print @@bad_imp_inputs;
+  
+  producers_with_bad_pcts =
+    SELECT p FROM producer:p
+    WHERE p.pct_of_national_output > 1000000 OR p.pct_of_national_exports > 1000000
+    OR p.pct_of_national_sk_labour > 1000000
+    OR p.pct_of_national_unsk_labour > 1000000;
+  
+  PRINT producers_with_bad_pcts;
+  
+  result =
+    SELECT u FROM _:u -(uses_domestic_input>:e)- _:v
+    WHERE e.pct_of_producer_input > 1000000 OR e.pct_of_producer_output > 1000000
+    ACCUM @@edges_with_bad_pcts += e;
+  
+  result =
+    SELECT u FROM _:u -(uses_imported_input>:e)- _:v
+    WHERE e.pct_of_producer_input > 1000000
+    ACCUM @@edges_with_bad_pcts += e;
+  
+  result =
+    SELECT u FROM _:u -(trades>:e)- _:v
+    WHERE e.pct_of_imported_product_total > 1000000 OR e.pct_of_producer_output > 1000000
+    ACCUM @@edges_with_bad_pcts += e;
+  
+  
+  result =
+    SELECT u FROM _:u -(production_shock>:e)- _:v
+    WHERE e.pct_of_producer_input > 1000000
+    ACCUM @@edges_with_bad_pcts += e;
+  
+    
+  result =
+    SELECT u FROM _:u -(trade_shock>:e)- _:v
+    WHERE e.pct_of_imported_product_total > 1000000 OR e.pct_of_producer_input > 1000000
+    ACCUM @@edges_with_bad_pcts += e;
+  
+  result =
+    SELECT u FROM _:u -(critical_industry_of>:e)- _:v
+    WHERE e.pct_of_national_output > 1000000 OR e.pct_of_national_exports > 1000000
+    OR e.pct_of_national_sk_labour > 1000000 OR e.pct_of_national_unsk_labour > 1000000
+    ACCUM @@edges_with_bad_pcts += e;
+  
+  PRINT @@edges_with_bad_pcts;
+}

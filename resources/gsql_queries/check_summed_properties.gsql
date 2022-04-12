@@ -1,0 +1,53 @@
+INTERPRET QUERY checked_summed_properties_7(/* Parameters here */) FOR GRAPH economic_links { 
+  SumAccum<UINT> @national_output, @national_export, @national_sk_lab, @national_unsk_lab, @producer_output, @producer_input, @importer_input;
+  
+  res = 
+    SELECT c
+    FROM producer:p -(located_in)- country:c
+    ACCUM c.@national_output += p.pct_of_national_output,
+    c.@national_export += p.pct_of_national_exports,
+    c.@national_sk_lab += p.pct_of_national_sk_labour,
+    c.@national_unsk_lab += p.pct_of_national_unsk_labour;
+  
+  res =
+    SELECT op
+    FROM producer:op -(uses_domestic_input>:e)- producer:ip
+    ACCUM op.@producer_output += e.pct_of_producer_output,
+    ip.@producer_input += e.pct_of_producer_input;
+  
+  res =
+    SELECT i
+    FROM importer:i -(uses_imported_input>:e)- producer:ip
+    ACCUM ip.@producer_input += e.pct_of_producer_input;
+  
+  res =
+    SELECT i
+    FROM producer:op -(trades>:e)- importer:i
+    ACCUM i.@importer_input += e.pct_of_imported_product_total,
+    op.@producer_output += e.pct_of_producer_output;
+  
+  Bad_Country_Sums =
+    SELECT c
+    FROM country:c
+    WHERE c.@national_output > 1000000
+    OR c.@national_export > 1000000
+    OR c.@national_sk_lab > 1000000
+    OR c.@national_unsk_lab > 1000000;
+  
+  PRINT Bad_Country_Sums;
+  
+  Bad_Producer_Sums =
+    SELECT p
+    FROM producer:p
+    WHERE p.@producer_input > 1000000
+    OR p.@producer_output > 1000000;
+  
+  PRINT Bad_Producer_Sums;
+  
+  Bad_Importer_Sums =
+    SELECT i
+    FROM importer:i
+    WHERE i.@importer_input > 1000000;
+  
+  PRINT Bad_Importer_Sums;
+}

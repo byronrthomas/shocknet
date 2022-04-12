@@ -1,3 +1,4 @@
+import json
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import tgfinance2022.graph_db as db
@@ -46,6 +47,10 @@ def originators():
     param_data = request.get_json()
     print('Received JSON data: ', param_data)
     return jsonify(shocks.run_shock_origination_query(conn, **param_data))
+
+@api.route('/self-check', methods=['GET'])
+def selfCheck():
+    return jsonify(db.run_data_quality_selfcheck(conn))
 
 if __name__ == '__main__':
     api.run() 

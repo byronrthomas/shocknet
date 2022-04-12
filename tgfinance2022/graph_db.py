@@ -99,28 +99,28 @@ create vertex {PRODUCT_VERTEX} (primary_id sector_id STRING, code STRING, is_tra
 
 create vertex {IMPORTER_VERTEX} (primary_id importer_id STRING, country_code STRING, product_code STRING, code STRING)
 
-create vertex {PRODUCER_VERTEX} (primary_id producer_id STRING, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT, market_export_val_dollars UINT, pct_of_national_exports UINT, pct_of_national_sk_labour INT, pct_of_national_unsk_labour INT)
+create vertex {PRODUCER_VERTEX} (primary_id producer_id STRING, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT, market_export_val_dollars UINT, pct_of_national_exports UINT, pct_of_national_sk_labour UINT, pct_of_national_unsk_labour UINT)
 
 create vertex {CONDITION_VERTEX} (primary_id id UINT, condition_description STRING)
 
 create undirected edge {LOCATION_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX})
 create undirected edge {PRODUCTION_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCT_VERTEX})
 
-create directed edge {DOMESTIC_INPUT_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, market_val_dollars INT, pct_of_producer_input INT, pct_of_producer_output INT)
+create directed edge {DOMESTIC_INPUT_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, market_val_dollars UINT, pct_of_producer_input UINT, pct_of_producer_output UINT)
 
-create directed edge {IMPORTED_INPUT_EDGE} (from {IMPORTER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, market_val_dollars INT)
+create directed edge {IMPORTED_INPUT_EDGE} (from {IMPORTER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input UINT, market_val_dollars UINT)
 
-create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX}, market_val_dollars INT, pct_of_imported_product_total INT, pct_of_producer_output INT)
+create directed edge {TRADE_EDGE} (from {PRODUCER_VERTEX}, to {IMPORTER_VERTEX}, market_val_dollars UINT, pct_of_imported_product_total UINT, pct_of_producer_output UINT)
 
-create directed edge {PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, market_val_dollars INT)
-create directed edge {TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT, market_val_dollars INT)
-create directed edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT, market_val_dollars INT, pct_of_national_exports INT, pct_of_national_sk_labour INT, pct_of_national_unsk_labour INT)
-create directed edge {HAS_INDUSTRY_EDGE} (from {COUNTRY_VERTEX}, to {PRODUCER_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
+create directed edge {PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input UINT, market_val_dollars UINT)
+create directed edge {TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input UINT, pct_of_imported_product_total UINT, market_val_dollars UINT)
+create directed edge {CRITICAL_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT, market_val_dollars UINT, pct_of_national_exports UINT, pct_of_national_sk_labour UINT, pct_of_national_unsk_labour UINT)
+create directed edge {HAS_INDUSTRY_EDGE} (from {COUNTRY_VERTEX}, to {PRODUCER_VERTEX}, pct_of_national_output UINT, market_val_dollars UINT)
 
-create directed edge {REV_PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, market_val_dollars INT)
-create directed edge {REV_TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input INT, pct_of_imported_product_total INT, market_val_dollars INT)
-create directed edge {REV_CRITICAL_INDUSTRY_EDGE} (from {COUNTRY_VERTEX}, to {PRODUCER_VERTEX}, pct_of_national_output UINT, market_val_dollars INT, pct_of_national_exports INT, pct_of_national_sk_labour INT, pct_of_national_unsk_labour INT)
-create directed edge {REV_HAS_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT, market_val_dollars INT)
+create directed edge {REV_PRODUCTION_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input UINT, market_val_dollars UINT)
+create directed edge {REV_TRADE_SHOCK_EDGE} (from {PRODUCER_VERTEX}, to {PRODUCER_VERTEX}, pct_of_producer_input UINT, pct_of_imported_product_total UINT, market_val_dollars UINT)
+create directed edge {REV_CRITICAL_INDUSTRY_EDGE} (from {COUNTRY_VERTEX}, to {PRODUCER_VERTEX}, pct_of_national_output UINT, market_val_dollars UINT, pct_of_national_exports UINT, pct_of_national_sk_labour UINT, pct_of_national_unsk_labour UINT)
+create directed edge {REV_HAS_INDUSTRY_EDGE} (from {PRODUCER_VERTEX}, to {COUNTRY_VERTEX}, pct_of_national_output UINT, market_val_dollars UINT)
 
 create graph {GRAPHNAME} ({COUNTRY_VERTEX}, {PRODUCT_VERTEX}, {PRODUCER_VERTEX}, {LOCATION_EDGE}, {PRODUCTION_EDGE}, {DOMESTIC_INPUT_EDGE}, {IMPORTED_INPUT_EDGE}, {IMPORTER_VERTEX}, {TRADE_EDGE},{CONDITION_VERTEX}, {CRITICAL_INDUSTRY_EDGE}, {TRADE_SHOCK_EDGE}, {PRODUCTION_SHOCK_EDGE}, {HAS_INDUSTRY_EDGE}, {REV_CRITICAL_INDUSTRY_EDGE}, {REV_TRADE_SHOCK_EDGE}, {REV_PRODUCTION_SHOCK_EDGE}, {REV_HAS_INDUSTRY_EDGE})
 ''', options=[]))
@@ -193,6 +193,15 @@ def reverse_edges(edges):
             'attributes': edge['attributes'],
             'directed': edge['directed']})
     return res
+
+def run_data_quality_selfcheck(conn):
+    res = []
+    res.append(conn.runInterpretedQuery(read_resource('resources/gsql_queries/check_basic_data_properties.gsql')))
+    res.append(conn.runInterpretedQuery(read_resource('resources/gsql_queries/check_non_tradables_data.gsql')))
+    res.append(conn.runInterpretedQuery(read_resource('resources/gsql_queries/check_summed_properties.gsql')))
+    res.append(conn.runInterpretedQuery(read_resource('resources/gsql_queries/check_conditioned_edges.gsql')))
+    return res
+
 
 if __name__ == "__main__":
     args = check_args()

@@ -1,0 +1,46 @@
+INTERPRET QUERY check_conditioned_edges_3(/* Parameters here */) FOR GRAPH economic_links { 
+  /**
+  Query to sanity check conditioned edge generation using a very simple invariant - there should
+  be fewer conditioned edges than original edges. This applies to the graph as a whole, but also
+  to the nodes themselves, e.g. a producer node cannot emit more trade shocks than the number of
+  trading relationships they engage in. So just count the edges of each type for each node and
+  output where non-conditioned < conditioned count.
+  
+  NOTE: the slightly counter-intuitive fact is that trade multiply possibilities in the graph model 
+  - because usa-oil exports to nic for example, all producers in nic can potentially receive a trade
+  from usa-oil, and hence can receive a trade shock from there. Hence we must check the number
+  of trade paths from producer to producer does not exceed the number of trade shocks between them.
+  */
+  SumAccum<UINT> @domestic_use_out, @production_shock_out, @domestic_use_in, @production_shock_in, @trades_out, @trade_shock_out, @trades_in, @trade_shock_in;
+  
+  Res =
+    SELECT ip
+    FROM producer:ip -(trades>)- importer:i -(uses_imported_input>)- producer:op
+    ACCUM ip.@trades_out += 1, op.@trades_in += 1;
+  
+  Res =
+    SELECT ip
+    FROM producer:ip -(uses_domestic_input>)- producer:op
+    ACCUM ip.@domestic_use_out += 1, op.@domestic_use_in += 1;
+  
+  Res =
+    SELECT ip
+    FROM producer:ip -(trade_shock>)- producer:op
+    ACCUM ip.@trade_shock_out += 1, op.@trade_shock_in += 1;
+  
+  Res =
+    SELECT ip
+    FROM producer:ip -(production_shock>)- producer:op
+    ACCUM ip.@production_shock_out += 1, op.@production_shock_in += 1;
+  
+
+  BadlyLinkedProducers =
+    SELECT p
+    FROM producer:p
+    WHERE p.@production_shock_out > p.@domestic_use_out
+    OR p.@trade_shock_out > p.@trades_out
+    OR p.@production_shock_in > p.@domestic_use_in
+    OR p.@trade_shock_in > p.@trades_in;
+  
+  PRINT BadlyLinkedProducers;
+}

@@ -1,0 +1,38 @@
+INTERPRET QUERY check_non_tradables_data_5(/* Parameters here */) FOR GRAPH economic_links { 
+  SetAccum<EDGE> @@input_edges_for_endowments;
+  SetAccum<EDGE> @@critical_industry_edge_for_endowments;
+  EndowmentProducers = 
+    SELECT p
+    FROM producer:p -(produces:e)- product:prd
+    WHERE prd.is_tradable_commodity == FALSE
+    AND prd.code != "CGDS";
+  
+  
+  Res =
+    SELECT u
+    FROM producer:u -(uses_domestic_input>:e)- EndowmentProducers:v
+    ACCUM @@input_edges_for_endowments += e;
+  
+  Res =
+    SELECT u
+    FROM importer:u -(uses_imported_input>:e)- EndowmentProducers:v
+    ACCUM @@input_edges_for_endowments += e;
+  
+  Res =
+    SELECT v
+    FROM EndowmentProducers:u -(critical_industry_of>:e)- country:v
+    ACCUM @@critical_industry_edge_for_endowments += e;
+  
+  BadNonTradableProducers =
+    SELECT p 
+    FROM producer:p -(produces:e)- product:prd
+    WHERE prd.is_tradable_commodity == FALSE
+    AND (p.pct_of_national_exports != 0 
+          OR p.pct_of_national_sk_labour != 0 
+          OR p.pct_of_national_unsk_labour != 0);
+  
+  PRINT @@input_edges_for_endowments;
+  PRINT @@critical_industry_edge_for_endowments;
+  PRINT BadNonTradableProducers;
+  
+}

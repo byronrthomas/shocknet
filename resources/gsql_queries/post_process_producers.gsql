@@ -1,0 +1,32 @@
+INTERPRET QUERY post_process_producers(/* Parameters here */) FOR GRAPH economic_links {
+/**
+    Ensures the pct-age of labour market stats are copied onto producers directly
+    (makes conditioning logic and UI presentation much more convenient).
+*/
+  MinAccum<INT> @pct_of_sk_lab, @pct_of_unsk_lab;
+  SkLabProducers = 
+    SELECT ep FROM product:prd -(produces)- producer:ep
+    WHERE prd.code  == "SkLab";
+  
+  UnSkLabProducers = 
+    SELECT ep FROM product:prd -(produces)- producer:ep
+    WHERE prd.code  == "UnSkLab";
+  
+  ExtraStep = 
+    SELECT p
+    FROM SkLabProducers:ep -(uses_domestic_input>:i) - producer:p
+    ACCUM p.@pct_of_sk_lab += i.pct_of_producer_output;
+  
+  ExtraStep = 
+    SELECT p
+    FROM UnSkLabProducers:ep -(uses_domestic_input>:i) - producer:p
+    ACCUM p.@pct_of_unsk_lab += i.pct_of_producer_output;
+  
+  Res =
+    SELECT p
+    FROM producer:p
+    POST-ACCUM p.pct_of_national_sk_labour = p.@pct_of_sk_lab
+    POST-ACCUM p.pct_of_national_unsk_labour = p.@pct_of_unsk_lab;
+  
+    PRINT Res.size() AS ProducersWithLabUpdate;
+  }

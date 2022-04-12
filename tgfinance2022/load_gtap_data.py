@@ -227,6 +227,10 @@ def write_data(config, paths):
     vfm_df = pd.read_pickle(paths['VFM'])
     add_product_input_edges(conn, vdfm_df, vifm_df, vom_df, vfm_df, make_input_summary(vdfm_df, vifm_df, vfm_df))
     
+    # Final step - ensure we post-process to de-normalise 
+    # some stats onto nodes for later convenience
+    conn.runInterpretedQuery(read_resource('resources/gsql_queries/post_process_producers.gsql'))
+
     print(conn.getVertexStats('*'))
     # print(conn.getEdgeStats('*', skipNA=True))
 

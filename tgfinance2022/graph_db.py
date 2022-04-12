@@ -99,7 +99,7 @@ create vertex {PRODUCT_VERTEX} (primary_id sector_id STRING, code STRING, is_tra
 
 create vertex {IMPORTER_VERTEX} (primary_id importer_id STRING, country_code STRING, product_code STRING, code STRING)
 
-create vertex {PRODUCER_VERTEX} (primary_id producer_id STRING, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT, market_export_val_dollars UINT, pct_of_national_exports UINT)
+create vertex {PRODUCER_VERTEX} (primary_id producer_id STRING, country_code STRING, product_code STRING, pct_of_national_output UINT, market_val_dollars UINT, market_export_val_dollars UINT, pct_of_national_exports UINT, pct_of_national_sk_labour INT, pct_of_national_unsk_labour INT)
 
 create vertex {CONDITION_VERTEX} (primary_id id UINT, condition_description STRING)
 

@@ -5,7 +5,8 @@ module.exports = {
   mode: 'development',
   entry: {
     effects: './src/effects.js',
-    horizons: './src/horizons.js'
+    horizons: './src/horizons.js',
+    groups: './src/groups.js',
   },
   resolve: {
     extensions: ['.ts', '.js'],
@@ -19,17 +20,23 @@ module.exports = {
    },
   plugins: [
     new HtmlWebpackPlugin({
-    title: 'ByronT: TigerGraph GraphForAll Finance Challenge',
+    title: 'ShockNet: Effects Mode',
     template: 'src/assets/template-effects.html',
     chunks: ['effects'],
     filename: 'effects.html'
   }),
     new HtmlWebpackPlugin({
-    title: 'ByronT: TigerGraph GraphForAll Finance Challenge',
+    title: 'ShockNet: Horizon Scanning Mode',
     template: 'src/assets/template-horizons.html',
     chunks: ['horizons'],
     filename: 'horizons.html'
-  })],
+  }),
+    new HtmlWebpackPlugin({
+    title: 'ShockNet: Group Analysis Mode',
+    template: 'src/assets/template-groups.html',
+    chunks: ['groups'],
+    filename: 'groups.html'
+})],
   module: {
     rules: [{
       enforce: 'pre',

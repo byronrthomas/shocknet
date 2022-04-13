@@ -130,17 +130,6 @@ function runShockReach(vertices, /*handler*/) {
 
 
 
-
-
-// initParamsCardSwitcher({
-//     spreadCard: document.getElementById('paramsCardShockSpread'),
-//     strongGroupsCard: document.getElementById('paramsCardStrongGroups'),
-//     weakGroupsCard: document.getElementById('paramsCardWeakGroups'),
-//     spreadInput: document.getElementById('optionsRadiosSpread'),
-//     weakGroupsInput: document.getElementById('optionsRadiosWeakGroups'),
-//     strongGroupsInput: document.getElementById('optionsRadiosStrongGroups'),
-// });
-
 // const spreadDetails = document.getElementById('shockSpreadDetails');
 // document.getElementById('optionsRadiosSpread').addEventListener('click', () => spreadDetails.removeAttribute("class"));
 // document.getElementById('optionsRadiosWeakGroups').addEventListener('click', () => spreadDetails.setAttribute('class', 'hidden'));

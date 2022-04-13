@@ -1,8 +1,8 @@
 import axios from 'axios';
-import {prepareCountryData, initMap, prepareLinkData, mapShocks, mapShockGroups} from './visualisation/map';
+import {prepareCountryData, initMap, prepareLinkData, mapShocks} from './visualisation/map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setAssumptionInfoText} from './user_input/assumptionInputs';
 import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
-import {initParamsCardSwitcher} from './user_input/paramsCardSwitcher';
+// import {initParamsCardSwitcher} from './user_input/paramsCardSwitcher';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -95,23 +95,12 @@ function handleRunAnalysisClick() {
         alert('You must set some model assumptions before running analyses!');
         return;
     }
-    if ( document.getElementById("optionsRadiosSpread").checked ) {
-        console.log("Spread analysis selected");
-        const shockSelection = getShockedProducerState();
-        console.log('Currently selected shock state =', shockSelection);
-        if (shockSelection.length > 0) {
-            runShockReach(shockSelection);
-        } else {
-            alert('You must select some starting producers to shock before analysing how the shock spreads!');
-        }
-    } else if (document.getElementById("optionsRadiosStrongGroups").checked) {
-        console.log("Strong group analysis selected");
-        runShockGroups(false);
-    } else if (document.getElementById("optionsRadiosWeakGroups").checked) {
-        console.log("Weak group analysis selected");
-        runShockGroups(true);
+    const shockSelection = getShockedProducerState();
+    console.log('Currently selected shock state =', shockSelection);
+    if (shockSelection.length > 0) {
+        runShockReach(shockSelection);
     } else {
-        console.log("WARN: don't know how to run...");
+        alert('You must select some starting producers to shock before analysing how the shock spreads!');
     }
 }
 
@@ -140,37 +129,21 @@ function runShockReach(vertices, /*handler*/) {
 }
 
 
-function runShockGroups(useWeakAnalysis) {
-    console.log("Running shock group analysis for", useWeakAnalysis);
-    axInstance.post(
-        '/communities', {
-            use_weak_cc: useWeakAnalysis
-        })
-        .then(function (response)
-        {
-            console.log('Got a successful response');
-            console.log(response['data']);
-            mapShockGroups(mapControl, response['data']);
-        })
-        .catch(function (error) 
-        {
-            console.log('Error!!!', error);
-        });    
-}
 
 
-initParamsCardSwitcher({
-    spreadCard: document.getElementById('paramsCardShockSpread'),
-    strongGroupsCard: document.getElementById('paramsCardStrongGroups'),
-    weakGroupsCard: document.getElementById('paramsCardWeakGroups'),
-    spreadInput: document.getElementById('optionsRadiosSpread'),
-    weakGroupsInput: document.getElementById('optionsRadiosWeakGroups'),
-    strongGroupsInput: document.getElementById('optionsRadiosStrongGroups'),
-});
 
-const spreadDetails = document.getElementById('shockSpreadDetails');
-document.getElementById('optionsRadiosSpread').addEventListener('click', () => spreadDetails.removeAttribute("class"));
-document.getElementById('optionsRadiosWeakGroups').addEventListener('click', () => spreadDetails.setAttribute('class', 'hidden'));
-document.getElementById('optionsRadiosStrongGroups').addEventListener('click', () => spreadDetails.setAttribute('class', 'hidden'));
+// initParamsCardSwitcher({
+//     spreadCard: document.getElementById('paramsCardShockSpread'),
+//     strongGroupsCard: document.getElementById('paramsCardStrongGroups'),
+//     weakGroupsCard: document.getElementById('paramsCardWeakGroups'),
+//     spreadInput: document.getElementById('optionsRadiosSpread'),
+//     weakGroupsInput: document.getElementById('optionsRadiosWeakGroups'),
+//     strongGroupsInput: document.getElementById('optionsRadiosStrongGroups'),
+// });
+
+// const spreadDetails = document.getElementById('shockSpreadDetails');
+// document.getElementById('optionsRadiosSpread').addEventListener('click', () => spreadDetails.removeAttribute("class"));
+// document.getElementById('optionsRadiosWeakGroups').addEventListener('click', () => spreadDetails.setAttribute('class', 'hidden'));
+// document.getElementById('optionsRadiosStrongGroups').addEventListener('click', () => spreadDetails.setAttribute('class', 'hidden'));
 
 getInitialAssumptions();

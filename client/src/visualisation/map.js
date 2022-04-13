@@ -401,7 +401,8 @@ export function initMap(elem) {
     // eslint-disable-next-line no-unused-vars
     var shock_map = new Datamap({
         element: elem,
-        height: 900,
+        // height: 900,
+        width: elem.clientWidth,
         data: {},
         responsive: true,
         scope: 'world',

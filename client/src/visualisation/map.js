@@ -301,7 +301,11 @@ export function prepareCountryData(rspData) {
           shockedIndustries: [], 
           nameOverride: overrideRegionNameForCode[cnt],
           graphRegion: edge.to_id,
-          impactedIndustryGdpPct: 0.0};
+          impactedIndustryGdpPct: 0.0,
+          impactedIndustryExportPct: 0.0,
+          impactedIndustrySkLabPct: 0.0,
+          impactedIndustryUnSkLabPct: 0.0,
+        };
       }
       // console.log(`Adding industry ${edge.from_id} to country ${cnt}`);
       countryData[cnt].shockedIndustries.push({
@@ -309,6 +313,9 @@ export function prepareCountryData(rspData) {
         gdp_pct: formatFixedPoint(edge.attributes.pct_of_national_output),
       });
       countryData[cnt].impactedIndustryGdpPct += formatFixedPoint(edge.attributes.pct_of_national_output);
+      countryData[cnt].impactedIndustryExportPct += formatFixedPoint(edge.attributes.pct_of_national_exports);
+      countryData[cnt].impactedIndustrySkLabPct += formatFixedPoint(edge.attributes.pct_of_national_sk_labour);
+      countryData[cnt].impactedIndustryUnSkLabPct += formatFixedPoint(edge.attributes.pct_of_national_unsk_labour);
     }
   }
   return countryData;
@@ -369,7 +376,7 @@ function countryPopupShockTransfer(geography, data) {
     (data.nameOverride ? 
       `<strong>${data.nameOverride} Region</strong> (includes ${geography.properties.name})` : 
       `<strong>${geography.properties.name}</strong>`) +
-      ` - affected industries total ${pctAsString(data.impactedIndustryGdpPct)}% of GDP` + 
+      ` - affected industries total ${pctAsString(data.impactedIndustryGdpPct)}% of GDP, ${pctAsString(data.impactedIndustryExportPct)}% of exports, ${pctAsString(data.impactedIndustrySkLabPct)}% of skilled labour, ${pctAsString(data.impactedIndustryUnSkLabPct)}% of unskilled labour` + 
     '<br/>Impacted critical sectors: ' +  data.shockedIndustries.map(industryShockAsText).join('; ') + 
     '<br/>Click on country to show how shocks reach here (further down the page)</div>';
 }
@@ -449,7 +456,7 @@ function edgeToText(edge) {
   if (edge.e_type === 'critical_industry_of') {
     const toReg = edgeToDestRegion(edge);
     const toLbl = graphRegionToUserText(toReg);
-    return `${tradedCommodity} is a critical industry of ${toLbl} (${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_output))}% of national output)`;
+    return `${tradedCommodity} is a critical industry of ${toLbl}: ${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_output))}% of national output, ${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_exports))}% of national exports, ${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_sk_labour))}% of national skilled labour value, ${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_unsk_labour))}% of national unskilled labour value`;
   }
   const [, toReg] = edgeToGraphRegions(edge);
   const toLbl = graphRegionToUserText(toReg);
@@ -495,7 +502,7 @@ function formatPathSummary(path) {
   const fromText = nodeAsSourceText({v_id: startEdge.from_id, v_type: startEdge.from_type});
   const finalEdge = path[path.length - 1];
   const toText = nodeAsDestText({v_id: finalEdge.to_id, v_type: finalEdge.to_type});
-  return `${path.length} hops: ${fromText} ===>>> ${toText}`;
+  return `${path.length} shock transfers: ${fromText} ===>>> ${toText}`;
 }
 
 function addLi(listElem, userText, clickHandler) {

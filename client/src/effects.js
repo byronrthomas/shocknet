@@ -116,7 +116,7 @@ const pathsOutputElems = {
     shockPathHdr: document.getElementById('pShockPathHdr'),
     shockPathDetails: document.getElementById('tblShockPathDetails'),
 };
-const allPathsListElem = document.getElementById('shockedPathsList');
+const allPathsListElem = document.getElementById('tblAllShockPaths');
 function runShockReach(vertices, /*handler*/) {
     const oldText = showButtonLoading(runBtn);
     console.log("Running shock reach analysis for", vertices);

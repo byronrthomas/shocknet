@@ -1,5 +1,5 @@
 import Datamap from 'datamaps';
-import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText, formatFixedPoint, fixedPointAsString } from '../graph_model/formatting';
+import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText, formatFixedPoint, fixedPointAsString, nodeToUserTextComponents } from '../graph_model/formatting';
 import { distinctColor } from './colors';
 
 var defaultOptions = {
@@ -523,12 +523,20 @@ function formatPathSummary(path) {
   return `${path.length} shock transfers: ${fromText} ===>>> ${toText}`;
 }
 
-function addLi(listElem, userText, clickHandler) {
-  const li = document.createElement('li');
-  li.textContent = userText;
-  li.setAttribute("class", "list-group-item");
-  li.addEventListener('click', clickHandler);
-  listElem.appendChild(li);
+function pathToSummaryRow(path) {
+  const startEdge = path[0];
+  const [fromCommod, fromLbl] = nodeToUserTextComponents({v_id: startEdge.from_id, v_type: startEdge.from_type});
+  const finalEdge = path[path.length - 1];
+  const toText = nodeAsDestText({v_id: finalEdge.to_id, v_type: finalEdge.to_type});
+  return `<td>Shock from ${fromCommod} in</td><td>${fromLbl}</td>
+  <td>passes via ${path.length} transfers to shock</td><td>${toText}</td>`;
+}
+
+function addTableRow(tableElem, innerHtml, clickHandler) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = innerHtml;
+  tr.addEventListener('click', clickHandler);
+  tableElem.appendChild(tr);
 }
 
 function showPathDetail({shockPathHdr, shockPathDetails}, path) {
@@ -540,19 +548,20 @@ function showPathDetail({shockPathHdr, shockPathDetails}, path) {
   shockPathDetails.innerHTML = fullPathOutput;
 }
 
-function showPathSummaries(allPathsListElem, allPaths, pathDetailsElems) {
+
+function showPathSummaries(tblAllShockedPaths, allPaths, pathDetailsElems) {
   // Reverse sort by path length
   allPaths.sort((b, a) => a.length - b.length);
   for (const path of allPaths) {
     const handler = () => showPathDetail(pathDetailsElems, path);
-    addLi(allPathsListElem, formatPathSummary(path), handler);
+    addTableRow(tblAllShockedPaths, pathToSummaryRow(path), handler);
   }
 }
 
-function clearPathsList(allPathsListElem) {
-  const allChildren = [...allPathsListElem.childNodes];
+function clearAllPathsTable(tblAllShockedPaths) {
+  const allChildren = [...tblAllShockedPaths.childNodes];
   for (const child of allChildren) {
-    allPathsListElem.removeChild(child);
+    tblAllShockedPaths.removeChild(child);
   }
 }
 
@@ -571,7 +580,7 @@ export function mapShocks(shock_map, pathDetailsElems, allPathsListElem, affecte
 
   // Reset the path details view
   clearPathDetails(pathDetailsElems);
-  clearPathsList(allPathsListElem);
+  clearAllPathsTable(allPathsListElem);
   // Now reset any previous click handlers
   var subunits = shock_map.svg.select('g.datamaps-subunits');
   subunits.selectAll('path.datamaps-subunit').on('click', null);

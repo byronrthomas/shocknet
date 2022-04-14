@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   mode: 'development',
@@ -36,7 +37,13 @@ module.exports = {
     template: 'src/assets/template-groups.html',
     chunks: ['groups'],
     filename: 'groups.html'
-})],
+  }),
+    new CopyWebpackPlugin({
+      patterns: [
+          { from: 'static' }
+      ]
+    })
+],
   module: {
     rules: [{
       enforce: 'pre',

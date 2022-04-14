@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+    <link href="./css/site.css" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js" type="text/javascript"></script>
+    <script type="text/javascript">WebFont.load({  google: {    families: ["Montserrat:100,100italic,200,200italic,300,300italic,400,400italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic","Source Sans Pro:200,300,regular,italic,600,700,900"]  }});</script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <title>ShockNet: Horizon Scanning Mode</title>
+  <script defer src="horizons.bundle.js"></script></head>
+  <body>
+    <div class="container">
+      <div class="navbar">
+        <div class="container-2">
+          <a href="#" class="logo-block"><img src="./images/ShockNet-logos_white.png" width="300" alt="" class="logo"></a>
+          <nav role="navigation" class="nav-menu navbar-right">
+            <a href="/effects.html" class="nav-link light">Effects Analysis</a>
+            <a href="/horizons.html" class="nav-link light">Horizon Scanning</a>
+            <a href="/groups.html" class="nav-link light">Group Analysis</a>
+          </nav>
+        </div>
+      </div>
+
+      <div class="subpage-header">
+        <h3 class="subpage-title">Horizon scanning mode: what future shocks might affect our chosen sectors</h3>
+      </div>
+
+      <div class="well">
+        <h3>Set assumptions on how shocks transfer</h3>
+      </div>
+
+      <div class="flex-row row">
+        <div class="col-sm-6">
+          <div class="well params-card" style="height: 100%;">
+            <h4 id="headerShockConditions">What scale of economic flows can transfer a shock?</h4>
+            <form class="form">
+              <div class="row">
+                <div class="form-group col-sm-6">
+                  <label id="assumptionInputLbl" for="assumptionInputPct">x% of producer input</label>
+                  <input type="number" class="form-control" id="assumptionInputPct" max=100 min=1 placeholder="10">
+                </div>
+                <div class="form-group col-sm-6">
+                  <label id="assumptionImportLbl" for="assumptionImportPct">y% of product imports</label>
+                  <input type="number" class="form-control" id="assumptionImportPct" max=100 min=1 placeholder="10">
+                </div>
+              </div>
+            </form>
+            <h4 id="headerCriticalInds">What makes an industry critical to a country?</h4>
+            <form class="form">
+              <div class="row">
+                <div class="form-group col-sm-6">
+                  <label class="radio-inline">
+                    <input type="radio" name="optionsCriticalIndCombination" id="optionsCritialIndAllThresh" value="allThresholds" checked>
+                    Must meet <strong>ALL</strong> thresholds
+                  </label>
+                </div>
+                <div class="form-group col-sm-6">
+                  <label class="radio-inline">
+                    <input type="radio" name="optionsCriticalIndCombination" id="optionsCritialIndSomeThresh" value="someThresholds" checked>
+                    Must meet <strong>SOME</strong> threshold(s)
+                  </label>
+                </div>
+              </div>
+              <div class="row">
+                <div class="form-group col-sm-6">
+                  <label id="criticalIndOutputLbl" for="critIndOutputPctInput">z1% of national output</label>
+                  <input type="number" class="form-control" id="critIndOutputPctInput" max=100 min=0 placeholder="10">
+                </div>
+                <div class="form-group col-sm-6">
+                  <label id="criticalIndExportLbl" for="critIndExportPctInput">z2% of national exports</label>
+                  <input type="number" class="form-control" id="critIndExportPctInput" max=100 min=0 placeholder="10">
+                </div>
+              </div>
+              <div class="row">
+                <div class="form-group col-sm-6">
+                  <label id="criticalIndSkLabLbl" for="critIndSkLabPctInput">z3% of skilled labour</label>
+                  <input type="number" class="form-control" id="critIndSkLabPctInput" max=100 min=0 placeholder="5">
+                </div>
+                <div class="form-group col-sm-6">
+                  <label id="criticalIndUnSkLabLbl" for="critIndUnSkLabPctInput">z4% of unskilled labour</label>
+                  <input type="number" class="form-control" id="critIndUnSkLabPctInput" max=100 min=0 placeholder="5">
+                </div>
+              </div>
+            </form>
+            <button type="button" class="btn btn-block btn-primary" id="btnUpdateAssumptions">Update model assumptions</button>
+        </div>
+      </div>
+        <div class="col-sm-6">
+          <div class="well params-card">
+            <h4>Current assumptions:</h4>
+            <table class="table" id="tblCurrentAssumptions">
+              <tr><td><strong>Shock Transfer assumptions</strong><td></td></tr>
+              <tr>
+                <td>Not set</td><td>of producer inputs</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>of product imports</td>
+              </tr>
+              <tr><td><strong>Critical Industry assumptions</strong></td><td></td></tr>
+              <tr>
+                <td>Not set</td><td>of national output</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>of national exports</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>of skilled labour</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>of unskilled labour</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>thresholds must be met by a critical industry</td>
+              </tr>
+            </table>
+            
+          </div>
+        </div>
+      </div>
+
+      <div class="well">
+        <h3>Select producers of interest - the things you want to protect.</h3>
+        <p>The model will find all of the other producers that may cause a shock to be transmitted to your choices.</p>
+      </div>
+
+      <div class="flex-row row">
+        <div class="col-sm-6">
+          <div class="well params-card">
+            <h4 id="hdrShockEndpoints">Which producers do you want to protect?</h4>
+            <form class="form">
+              <div class="form-group">
+                
+                <div class="row">
+                  <div class="col-sm-4">
+                    <label for="endpointProducerRegion" class="control-label">Country / region</label>
+                  </div>
+                  
+                  <div class="col-sm-8">
+                    <select class="select2-enable col-sm-8" id="endpointProducerRegion" name="shockedRegion">
+                      <option value="aus">Australia</option>
+                      <option value="nzl">New Zealand</option>
+                      <option value="xoc">Rest of Oceania: Papua New Guinea, Samoa, Fiji, Tonga, other Micronesia / Polynesia</option>
+                      <option value="chn">China</option>
+                      <option value="hkg">Hong Kong</option>
+                      <option value="jpn">Japan</option>
+                      <option value="kor">Korea</option>
+                      <option value="mng">Mongolia</option>
+                      <option value="twn">Taiwan</option>
+                      <option value="xea">Rest of East Asia: Macau, North Korea</option>
+                      <option value="khm">Cambodia</option>
+                      <option value="idn">Indonesia</option>
+                      <option value="lao">Lao People's Democratic Republ</option>
+                      <option value="mys">Malaysia</option>
+                      <option value="phl">Philippines</option>
+                      <option value="sgp">Singapore</option>
+                      <option value="tha">Thailand</option>
+                      <option value="vnm">Viet Nam</option>
+                      <option value="xse">Rest of Southeast Asia: Myanmar, Timor Leste</option>
+                      <option value="bgd">Bangladesh</option>
+                      <option value="ind">India</option>
+                      <option value="npl">Nepal</option>
+                      <option value="pak">Pakistan</option>
+                      <option value="lka">Sri Lanka</option>
+                      <option value="xsa">Rest of South Asia: Afghanistan, Bhutan, Maldives</option>
+                      <option value="can">Canada</option>
+                      <option value="usa">United States of America</option>
+                      <option value="mex">Mexico</option>
+                      <option value="xna">Rest of North America: Bermuda, Greenland, Saint Pierre and Miquelon</option>
+                      <option value="arg">Argentina</option>
+                      <option value="bol">Bolivia</option>
+                      <option value="bra">Brazil</option>
+                      <option value="chl">Chile</option>
+                      <option value="col">Colombia</option>
+                      <option value="ecu">Ecuador</option>
+                      <option value="pry">Paraguay</option>
+                      <option value="per">Peru</option>
+                      <option value="ury">Uruguay</option>
+                      <option value="ven">Venezuela</option>
+                      <option value="xsm">Rest of South America: Falkland Islands (Malvinas), French Guiana, Guyana, Paraguay, Suriname</option>
+                      <option value="cri">Costa Rica</option>
+                      <option value="gtm">Guatemala</option>
+                      <option value="hnd">Honduras</option>
+                      <option value="nic">Nicaragua</option>
+                      <option value="pan">Panama</option>
+                      <option value="slv">El Salvador</option>
+                      <option value="xca">Belize</option>
+                      <option value="xcb">Caribbean</option>
+                      <option value="aut">Austria</option>
+                      <option value="bel">Belgium</option>
+                      <option value="cyp">Cyprus</option>
+                      <option value="cze">Czech Republic</option>
+                      <option value="dnk">Denmark</option>
+                      <option value="est">Estonia</option>
+                      <option value="fin">Finland</option>
+                      <option value="fra">France</option>
+                      <option value="deu">Germany</option>
+                      <option value="grc">Greece</option>
+                      <option value="hun">Hungary</option>
+                      <option value="irl">Ireland</option>
+                      <option value="ita">Italy</option>
+                      <option value="lva">Latvia</option>
+                      <option value="ltu">Lithuania</option>
+                      <option value="lux">Luxembourg</option>
+                      <option value="mlt">Malta</option>
+                      <option value="nld">Netherlands</option>
+                      <option value="pol">Poland</option>
+                      <option value="prt">Portugal</option>
+                      <option value="svk">Slovakia</option>
+                      <option value="svn">Slovenia</option>
+                      <option value="esp">Spain</option>
+                      <option value="swe">Sweden</option>
+                      <option value="gbr">United Kingdom</option>
+                      <option value="che">Switzerland</option>
+                      <option value="nor">Norway</option>
+                      <option value="xef">Rest of EFTA: Iceland, Liechtenstein</option>
+                      <option value="alb">Albania</option>
+                      <option value="bgr">Bulgaria</option>
+                      <option value="blr">Belarus</option>
+                      <option value="hrv">Croatia</option>
+                      <option value="rou">Romania</option>
+                      <option value="rus">Russian Federation</option>
+                      <option value="ukr">Ukraine</option>
+                      <option value="xee">Moldova</option>
+                      <option value="xer">Rest of Europe: Andorra, Bosnia and Herzegovina, Faroe Islands, Gibraltar, Channel Islands, Vatican City State, Isle of Man, Macedonia, Monaco, Montenegro, San Marino, Serbia</option>
+                      <option value="kaz">Kazakhstan</option>
+                      <option value="kgz">Kyrgyztan</option>
+                      <option value="xsu">Rest of Former Soviet Union: Tajikistan, Turkmenistan, Uzbekistan</option>
+                      <option value="arm">Armenia</option>
+                      <option value="aze">Azerbaijan</option>
+                      <option value="geo">Georgia</option>
+                      <option value="bhr">Bahrain</option>
+                      <option value="irn">Iran Islamic Republic of</option>
+                      <option value="isr">Israel</option>
+                      <option value="kwt">Kuwait</option>
+                      <option value="omn">Oman</option>
+                      <option value="qat">Qatar</option>
+                      <option value="sau">Saudi Arabia</option>
+                      <option value="tur">Turkey</option>
+                      <option value="are">United Arab Emirates</option>
+                      <option value="xws">Rest of Western Asia: Iraq, Lebanon, Palestinian Territory, Occupied, Syrian Arab Republic, Yemen</option>
+                      <option value="egy">Egypt</option>
+                      <option value="mar">Morocco</option>
+                      <option value="tun">Tunisia</option>
+                      <option value="xnf">Rest of North Africa: Algeria, Libya, Western Sahara</option>
+                      <option value="ben">Benin</option>
+                      <option value="bfa">Burkina Faso</option>
+                      <option value="cmr">Cameroon</option>
+                      <option value="civ">Cote d'Ivoire</option>
+                      <option value="gha">Ghana</option>
+                      <option value="gin">Guinea</option>
+                      <option value="nga">Nigeria</option>
+                      <option value="sen">Senegal</option>
+                      <option value="tgo">Togo</option>
+                      <option value="xwf">Rest of Western Africa: Cape Verde, Gambia, Guinea-Bissau, Liberia, Mali, Mauritania, Niger, Saint Helena, Sierra Leone</option>
+                      <option value="xcf">Central Africa: CAR, Chad, Congo, Equatorial Guinea, Gabon, Sao Tome and Principe</option>
+                      <option value="xac">South Central Africa: Angola, Democratic Republic of the Congo</option>
+                      <option value="eth">Ethiopia</option>
+                      <option value="ken">Kenya</option>
+                      <option value="mdg">Madagascar</option>
+                      <option value="mwi">Malawi</option>
+                      <option value="mus">Mauritius</option>
+                      <option value="moz">Mozambique</option>
+                      <option value="rwa">Rwanda</option>
+                      <option value="tza">Tanzania</option>
+                      <option value="uga">Uganda</option>
+                      <option value="zmb">Zambia</option>
+                      <option value="zwe">Zimbabwe</option>
+                      <option value="xec">Rest of Eastern Africa: Burundi, Comoros, Djibouti, Eritrea, Mayotte, Seychelles, Somalia, Sudan</option>
+                      <option value="bwa">Botswana</option>
+                      <option value="nam">Namibia</option>
+                      <option value="zaf">South Africa</option>
+                      <option value="xsc">Rest of South African Customs: Lesotho, Swaziland</option>
+                      <option value="xtw">Rest of the World: Antarctica, Bouvet Island, British Indian Ocean Territory, French Southern Territories</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-sm-12">
+                  <button type="button" class="btn btn-primary btn-block" id="endpointProducerAddRegion">Add all critical industries</button>
+                </div>
+              </div>
+              <div class="form-group">
+                
+                <div class="row">
+                  <div class="col-sm-4">
+                    <label for="endpointProducerProduct" class="control-label">Producer of</label>
+                  </div>
+                  
+                  <div class="col-sm-8">
+                    <select class="select2-enable" id="endpointProducerProduct">
+                      <option value="pdr">Paddy rice</option>
+                      <option value="wht">Wheat</option>
+                      <option value="gro">Cereal grains (other)</option>
+                      <option value="v_f">Vegetables, fruit, nuts</option>
+                      <option value="osd">Oil seeds</option>
+                      <option value="c_b">Sugar cane, sugar beet</option>
+                      <option value="pfb">Plant-based fibers</option>
+                      <option value="ocr">Crops (other)</option>
+                      <option value="ctl">Cattle,sheep,goats,horses</option>
+                      <option value="oap">Animal products (other)</option>
+                      <option value="rmk">Raw milk</option>
+                      <option value="wol">Wool, silk-worm cocoons</option>
+                      <option value="frs">Forestry</option>
+                      <option value="fsh">Fishing</option>
+                      <option value="coa">Coal</option>
+                      <option value="oil">Oil</option>
+                      <option value="gas">Gas</option>
+                      <option value="omn">Minerals (other)</option>
+                      <option value="cmt">Meat: cattle,sheep,goats,horse</option>
+                      <option value="omt">Meat products (other)</option>
+                      <option value="vol">Vegetable oils and fats</option>
+                      <option value="mil">Dairy products</option>
+                      <option value="pcr">Processed rice</option>
+                      <option value="sgr">Sugar</option>
+                      <option value="ofd">Food products (other)</option>
+                      <option value="b_t">Beverages and tobacco products</option>
+                      <option value="tex">Textiles</option>
+                      <option value="wap">Wearing apparel</option>
+                      <option value="lea">Leather products</option>
+                      <option value="lum">Wood products</option>
+                      <option value="ppp">Paper products, publishing</option>
+                      <option value="p_c">Petroleum, coal products</option>
+                      <option value="crp">Chemical,rubber,plastic prods</option>
+                      <option value="nmm">Mineral products (other)</option>
+                      <option value="i_s">Ferrous metals</option>
+                      <option value="nfm">Metals (other)</option>
+                      <option value="fmp">Metal products</option>
+                      <option value="mvh">Motor vehicles and parts</option>
+                      <option value="otn">Transport equipment (other)</option>
+                      <option value="ele">Electronic equipment</option>
+                      <option value="ome">Machinery and equipment (other)</option>
+                      <option value="omf">Manufactures (other)</option>
+                      <option value="ely">Electricity</option>
+                      <option value="gdt">Gas manufacture, distribution</option>
+                      <option value="wtr">Water</option>
+                      <option value="cns">Construction</option>
+                      <option value="trd">Trade</option>
+                      <option value="otp">Transport (other)</option>
+                      <option value="wtp">Sea transport</option>
+                      <option value="atp">Air transport</option>
+                      <option value="cmn">Communication</option>
+                      <option value="ofi">Financial services (other)</option>
+                      <option value="isr">Insurance</option>
+                      <option value="obs">Business services (other)</option>
+                      <option value="ros">Recreation and other services</option>
+                      <option value="osg">PubAdmin/Defence/Health/Education</option>
+                      <option value="dwe">Dwellings</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group row">
+                <div class="col-sm-12">
+                  <button type="button" class="btn btn-primary btn-block" id="endpointProducerAddSingle">Add single local producer</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+          <div class="well params-card"  style="height: 100%;">
+            <h4>Currently selected producers</h4>
+            <form>
+              <div class="form-group">
+                <ul class="list-group" id="endpointProducersList"></ul>
+              </div>
+              <div class="form-group">
+                <button type="button" class="btn btn-block btn-primary" id="btnEndpointProducerClear">Reset selection</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="well">
+        <button type="button" class="btn btn-large btn-block go-button" id="btnRunAnalysis">Run Analysis</button>
+      </div>
+      
+
+    </div>
+
+    <div class="container-fluid">
+      <div id="visWrapper" class="well">
+        <div id="networkVisualisation" class="center-block"></div>
+      </div>
+    </div>
+
+    <div class="tooltip">Hover over me
+      <span class="tooltiptext">Tooltip text</span>
+    </div>
+
+  
+    <script>
+    $(function() {
+      //$.fn.modal.Constructor.prototype.enforceFocus = function() {};
+      $('.select2-enable').select2({width: "100%"});
+    });
+    </script>
+  </body>
+</html>

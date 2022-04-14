@@ -117,7 +117,7 @@ function isComboControl(key) {
 
 export function setAssumptionInfoText() {}
 
-export function setCurrentAssumptionInfo(shockTransferTbl, criticalIndTbl, data) {
+export function setCurrentAssumptionInfo(assumptionsInfoTbl, data) {
     const shockTransferRows = [];
     const criticalIndRelatedRows = [];
     for (const nm in namesToInfo) {
@@ -136,6 +136,10 @@ export function setCurrentAssumptionInfo(shockTransferTbl, criticalIndTbl, data)
             shockTransferRows.push(rowData);
         }
     }
-    shockTransferTbl.innerHTML = shockTransferRows.join('\n');
-    criticalIndTbl.innerHTML = criticalIndRelatedRows.join('\n');
+    const fullContent =
+        '<tr><td><strong>Shock Transfer assumptions</strong><td></td></tr>\n' +
+            shockTransferRows.join('\n') +
+            '<tr><td><strong>Critical Industry assumptions</strong></td><td></td></tr>\n' +
+            criticalIndRelatedRows.join('\n');
+    assumptionsInfoTbl.innerHTML = fullContent;
 }

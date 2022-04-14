@@ -2,7 +2,6 @@ import axios from 'axios';
 import {prepareCountryData, initMap, prepareLinkData, mapShocks} from './visualisation/map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setCurrentAssumptionInfo} from './user_input/assumptionInputs';
 import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
-// import {initParamsCardSwitcher} from './user_input/paramsCardSwitcher';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -34,8 +33,7 @@ initShockedProducersInput(
         currentList: document.getElementById("shockedProducersList")}
 );
 
-const tblCurrShockTranAssumptions = document.getElementById("tblShockTransferAssumptions");
-const tblCurrCriticalIndAssumptions = document.getElementById("tblCriticalIndAssumptions");
+const tblCurrentAssumptions = document.getElementById("tblCurrentAssumptions");
 var currentAssumptions;
 function getInitialAssumptions() {
     axInstance.get('/conditions')
@@ -45,7 +43,7 @@ function getInitialAssumptions() {
             if (response.data) {
                 console.log('data = ', response.data);
                 setInitialAssumptionState(response.data);
-                setCurrentAssumptionInfo(tblCurrShockTranAssumptions, tblCurrCriticalIndAssumptions, response.data);
+                setCurrentAssumptionInfo(tblCurrentAssumptions, response.data);
                 currentAssumptions = response.data;
             }
         })
@@ -78,7 +76,7 @@ function handleSubmitAssumptions() {
                 console.log('Got a successful response to fetch current condition');
                 if (response.data) {
                     console.log('data = ', response.data);
-                    setCurrentAssumptionInfo(tblCurrShockTranAssumptions, tblCurrCriticalIndAssumptions, response.data);
+                    setCurrentAssumptionInfo(tblCurrentAssumptions, response.data);
                     currentAssumptions = response.data;
                 }
             })

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import {initMap, mapShockGroups} from './visualisation/map';
-import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setAssumptionInfoText} from './user_input/assumptionInputs';
+import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setCurrentAssumptionInfo} from './user_input/assumptionInputs';
 
 
 // TODO: pull from env
@@ -23,7 +23,8 @@ const axInstance = axios.create({
     criticalIndComboSomeRadio: document.getElementById("optionsCritialIndSomeThresh"),
 });
 
-const assumptionsInfoText = document.getElementById("currentAssumptionsInfo");
+
+const tblCurrentAssumptions = document.getElementById("tblCurrentAssumptions");
 var currentAssumptions;
 function getInitialAssumptions() {
     axInstance.get('/conditions')
@@ -33,7 +34,7 @@ function getInitialAssumptions() {
             if (response.data) {
                 console.log('data = ', response.data);
                 setInitialAssumptionState(response.data);
-                setAssumptionInfoText(assumptionsInfoText, response.data);
+                setCurrentAssumptionInfo(tblCurrentAssumptions, response.data);
                 currentAssumptions = response.data;
             }
         })
@@ -43,6 +44,7 @@ function getInitialAssumptions() {
         });   
 }
 
+const updateAssumptionsButton = document.getElementById("btnUpdateAssumptions");
 function handleSubmitAssumptions() {
     console.log('Update model assumptions clicked');
     const assumptionState = getAssumptionInputState();
@@ -51,7 +53,9 @@ function handleSubmitAssumptions() {
     } else {
         const data = assumptionState.success;
         console.log('About to update model with assumptions =', data);
-        assumptionsInfoText.textContent = 'Updating...';
+        const oldText = updateAssumptionsButton.innerText;
+        updateAssumptionsButton.innerText = 'Loading...';
+        updateAssumptionsButton.setAttribute('disabled', true);
         axInstance.post(
             '/conditions', data)
             .then(function ()
@@ -63,17 +67,22 @@ function handleSubmitAssumptions() {
                 console.log('Got a successful response to fetch current condition');
                 if (response.data) {
                     console.log('data = ', response.data);
-                    setAssumptionInfoText(assumptionsInfoText, response.data);
+                    setCurrentAssumptionInfo(tblCurrentAssumptions, response.data);
                     currentAssumptions = response.data;
                 }
             })
             .catch(function (error) 
             {
                 console.log('Error!!!', error);
+            })
+            .finally(function () {
+                console.log('Running finally block');
+                updateAssumptionsButton.innerText = oldText;
+                updateAssumptionsButton.removeAttribute('disabled');
             });   
     }
 }
-document.getElementById("btnUpdateAssumptions").addEventListener('click', handleSubmitAssumptions);
+updateAssumptionsButton.addEventListener('click', handleSubmitAssumptions);
 
 const mapElem = document.getElementById("map");
 const mapControl = initMap(mapElem);

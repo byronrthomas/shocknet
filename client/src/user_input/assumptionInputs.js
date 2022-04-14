@@ -1,10 +1,10 @@
 
 const namesToInfo = {
     input_thresh: { 
-        userText: 'Input threshold (x%)',
+        userText: 'Producer input threshold (x%)',
     },
     import_thresh: { 
-        userText: 'Imported amount threshold (y%)',
+        userText: 'Product imports amount threshold (y%)',
     },
     critical_ind_gdp_thresh: { 
         userText: 'National output threshold (z1%)',

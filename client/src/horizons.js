@@ -96,23 +96,12 @@ function handleRunAnalysisClick() {
         alert('You must set some model assumptions before running analyses!');
         return;
     }
-    if ( document.getElementById("optionsRadiosOrigination").checked ) {
-        console.log("Shock origination analysis selected");
-        const endpointSelection = getShockedProducerState();
-        console.log('Currently selected endpoints =', endpointSelection);
-        if (endpointSelection.length > 0) {
-            runShockOrigination(endpointSelection);
-        } else {
-            alert('You must select some producers of interest before analysing which shocks could reach them!');
-        }
-    // } else if (document.getElementById("optionsRadiosStrongGroups").checked) {
-    //     console.log("Strong group analysis selected");
-    //     runShockGroups(false);
-    // } else if (document.getElementById("optionsRadiosWeakGroups").checked) {
-    //     console.log("Weak group analysis selected");
-    //     runShockGroups(true);
+    const endpointSelection = getShockedProducerState();
+    console.log('Currently selected endpoints =', endpointSelection);
+    if (endpointSelection.length > 0) {
+        runShockOrigination(endpointSelection);
     } else {
-        console.log("WARN: don't know how to run...");
+        alert('You must select some producers of interest before analysing which shocks could reach them!');
     }
 }
 

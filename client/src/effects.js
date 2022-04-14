@@ -128,11 +128,4 @@ function runShockReach(vertices, /*handler*/) {
         });    
 }
 
-
-
-// const spreadDetails = document.getElementById('shockSpreadDetails');
-// document.getElementById('optionsRadiosSpread').addEventListener('click', () => spreadDetails.removeAttribute("class"));
-// document.getElementById('optionsRadiosWeakGroups').addEventListener('click', () => spreadDetails.setAttribute('class', 'hidden'));
-// document.getElementById('optionsRadiosStrongGroups').addEventListener('click', () => spreadDetails.setAttribute('class', 'hidden'));
-
 getInitialAssumptions();

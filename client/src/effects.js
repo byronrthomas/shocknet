@@ -2,6 +2,7 @@ import axios from 'axios';
 import {prepareCountryData, initMap, prepareLinkData, mapShocks} from './visualisation/map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setCurrentAssumptionInfo} from './user_input/assumptionInputs';
 import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
+import { showButtonLoading, reenableButton } from './visualisation/sharedWidgetLogic';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -53,6 +54,8 @@ function getInitialAssumptions() {
         });   
 }
 
+
+
 const updateAssumptionsButton = document.getElementById("btnUpdateAssumptions");
 function handleSubmitAssumptions() {
     console.log('Update model assumptions clicked');
@@ -62,9 +65,7 @@ function handleSubmitAssumptions() {
     } else {
         const data = assumptionState.success;
         console.log('About to update model with assumptions =', data);
-        const oldText = updateAssumptionsButton.innerText;
-        updateAssumptionsButton.innerText = 'Loading...';
-        updateAssumptionsButton.setAttribute('disabled', true);
+        const oldText = showButtonLoading(updateAssumptionsButton);
         axInstance.post(
             '/conditions', data)
             .then(function ()
@@ -85,9 +86,7 @@ function handleSubmitAssumptions() {
                 console.log('Error!!!', error);
             })
             .finally(function () {
-                console.log('Running finally block');
-                updateAssumptionsButton.innerText = oldText;
-                updateAssumptionsButton.removeAttribute('disabled');
+                reenableButton(updateAssumptionsButton, oldText);
             });   
     }
 }
@@ -116,6 +115,7 @@ runBtn.addEventListener('click', handleRunAnalysisClick);
 const pathsOutputElem = document.getElementById('pathsOutputElem');
 const allPathsListElem = document.getElementById('shockedPathsList');
 function runShockReach(vertices, /*handler*/) {
+    const oldText = showButtonLoading(runBtn);
     console.log("Running shock reach analysis for", vertices);
     axInstance.post(
         '/reachable', {
@@ -132,6 +132,9 @@ function runShockReach(vertices, /*handler*/) {
         .catch(function (error) 
         {
             console.log('Error!!!', error);
+        })
+        .finally(function () {
+            reenableButton(runBtn, oldText);
         });    
 }
 

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {initMap, mapShockGroups} from './visualisation/map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setCurrentAssumptionInfo} from './user_input/assumptionInputs';
+import { showButtonLoading, reenableButton } from './visualisation/sharedWidgetLogic';
 
 
 // TODO: pull from env
@@ -53,9 +54,7 @@ function handleSubmitAssumptions() {
     } else {
         const data = assumptionState.success;
         console.log('About to update model with assumptions =', data);
-        const oldText = updateAssumptionsButton.innerText;
-        updateAssumptionsButton.innerText = 'Loading...';
-        updateAssumptionsButton.setAttribute('disabled', true);
+        const oldText = showButtonLoading(updateAssumptionsButton);
         axInstance.post(
             '/conditions', data)
             .then(function ()
@@ -77,8 +76,7 @@ function handleSubmitAssumptions() {
             })
             .finally(function () {
                 console.log('Running finally block');
-                updateAssumptionsButton.innerText = oldText;
-                updateAssumptionsButton.removeAttribute('disabled');
+                reenableButton(updateAssumptionsButton, oldText);
             });   
     }
 }
@@ -108,6 +106,7 @@ function handleRunAnalysisClick() {
 runBtn.addEventListener('click', handleRunAnalysisClick);
 
 function runShockGroups(useWeakAnalysis) {
+    const oldText = showButtonLoading(runBtn);
     console.log("Running shock group analysis for", useWeakAnalysis);
     axInstance.post(
         '/communities', {
@@ -122,6 +121,9 @@ function runShockGroups(useWeakAnalysis) {
         .catch(function (error) 
         {
             console.log('Error!!!', error);
+        })    
+        .finally(function () {
+            reenableButton(runBtn, oldText);
         });    
 }
 

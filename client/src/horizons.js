@@ -3,6 +3,7 @@ import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState
 import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
 import { initShockNetwork, updateNetwork } from './visualisation/shockNetwork';
 import { shockOriginationFiveCountries } from './trialData';
+import { showButtonLoading, reenableButton } from './visualisation/sharedWidgetLogic';
 
 // TODO: pull from env
 const HOST = 'http://127.0.0.1:5000'
@@ -64,9 +65,7 @@ function handleSubmitAssumptions() {
     } else {
         const data = assumptionState.success;
         console.log('About to update model with assumptions =', data);
-        const oldText = updateAssumptionsButton.innerText;
-        updateAssumptionsButton.innerText = 'Loading...';
-        updateAssumptionsButton.setAttribute('disabled', true);
+        const oldText = showButtonLoading(updateAssumptionsButton);
         axInstance.post(
             '/conditions', data)
             .then(function ()
@@ -88,8 +87,7 @@ function handleSubmitAssumptions() {
             })
             .finally(function () {
                 console.log('Running finally block');
-                updateAssumptionsButton.innerText = oldText;
-                updateAssumptionsButton.removeAttribute('disabled');
+                reenableButton(updateAssumptionsButton, oldText);
             });   
     }
 }
@@ -117,6 +115,7 @@ runBtn.addEventListener('click', handleRunAnalysisClick);
 // const pathsOutputElem = document.getElementById('pathsOutputElem');
 // const allPathsListElem = document.getElementById('shockedPathsList');
 function runShockOrigination(vertices, /*handler*/) {
+    const oldText = showButtonLoading(runBtn);
     console.log("Running shock reach analysis for", vertices);
     axInstance.post(
         '/originators', {
@@ -131,6 +130,9 @@ function runShockOrigination(vertices, /*handler*/) {
         .catch(function (error) 
         {
             console.log('Error!!!', error);
+        })
+        .finally(function () {
+            reenableButton(runBtn, oldText);
         });    
 }
 

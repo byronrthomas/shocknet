@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/
@@ -45,7 +46,7 @@
 
       <div class="flex-row row">
         <div class="col-sm-6">
-          <div class="well params-card">
+          <div class="well params-card" style="height: 100%;">
             <h4 id="headerShockConditions">What scale of economic flows can transfer a shock?</h4>
             <form class="form">
               <div class="row">
@@ -96,14 +97,40 @@
                 </div>
               </div>
             </form>
+              <button type="button" class="btn btn-block btn-primary" id="btnUpdateAssumptions">Update model assumptions</button>
           </div>
         </div>
         <div class="col-sm-6">
-          <div class="well params-card" style="height: 100%;">
+          <div class="well params-card">
             <h4>Current assumptions:</h4>
-            <p><span id="currentAssumptionsInfo">No assumptions set</span></p>
-      
-            <button type="button" class="btn btn-large btn-primary" id="btnUpdateAssumptions">Update model assumptions</button>
+            <table class="table" id="tblShockTransferAssumptions">
+              <strong>Shock Transfer assumptions</strong>
+              <tr>
+                <td>Not set</td><td>of producer inputs</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>of product imports</td>
+              </tr>
+            </table>
+            <table class="table" id="tblCriticalIndAssumptions">
+              <strong>Critical Industry assumptions</strong>
+              <tr>
+                <td>Not set</td><td>of national output</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>of national exports</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>of skilled labour</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>of unskilled labour</td>
+              </tr>
+              <tr>
+                <td>Not set</td><td>thresholds must be met by a critical industry</td>
+              </tr>
+            </table>
+            
           </div>
         </div>
       </div>

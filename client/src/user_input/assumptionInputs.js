@@ -1,29 +1,29 @@
 
 const namesToInfo = {
     input_thresh: { 
-        userText: 'Producer input threshold (x%)',
+        userText: 'x% of producer input',
     },
     import_thresh: { 
-        userText: 'Product imports amount threshold (y%)',
+        userText: 'y% of product imports',
     },
     critical_ind_gdp_thresh: { 
-        userText: 'National output threshold (z1%)',
+        userText: 'z1% of national output',
         isCriticalIndRelated: true,
     },
     critical_ind_export_thresh: { 
-        userText: 'Export threshold (z2%)',
+        userText: 'z2% of national exports',
         isCriticalIndRelated: true,
     }, 
     critical_ind_skilled_lab_thresh: { 
-        userText: 'Skilled labour threshold (z3%)',
+        userText: 'z3% of skilled labour',
         isCriticalIndRelated: true,
     }, 
     critical_ind_unskilled_lab_thresh: { 
-        userText: 'Unskilled labour threshold (z4%)',
+        userText: 'z4% of unskilled labour',
         isCriticalIndRelated: true,
     },
     critical_ind_meets_all_thresholds: { 
-        userText: 'Critical industry meets ALL/SOME thresholds',
+        userText: 'thresholds must be met by a critical industry',
         isCriticalIndRelated: true,
     },
 }
@@ -115,21 +115,27 @@ function isComboControl(key) {
     return key === 'critical_ind_meets_all_thresholds';
 }
 
-export function setAssumptionInfoText(textElem, data) {
-    const basicTexts = [];
-    const criticalIndRelatedTexts = [];
+export function setAssumptionInfoText() {}
+
+export function setCurrentAssumptionInfo(shockTransferTbl, criticalIndTbl, data) {
+    const shockTransferRows = [];
+    const criticalIndRelatedRows = [];
     for (const nm in namesToInfo) {
-        const asText = 
-            isComboControl(nm) ?
-            `${namesToInfo[nm].userText}: <em>${data[nm] ? "ALL" : "SOME"}</em>` :
-            `${namesToInfo[nm].userText}: ${fixedNumToCtrlInput(data[nm])}%`;
-        if (namesToInfo[nm].isCriticalIndRelated) {
-            criticalIndRelatedTexts.push(asText);
+        let textValue;
+        let label = namesToInfo[nm].userText;
+        if (isComboControl(nm)) {
+            textValue = `${data[nm] ? "ALL" : "SOME"}`;
         } else {
-            basicTexts.push(asText);
+            textValue = `${fixedNumToCtrlInput(data[nm])}%`;
+            label = label.substring(label.indexOf('of '));
+        }
+        const rowData = `<tr><td>${textValue}</td><td>${label}</td></tr>`;
+        if (namesToInfo[nm].isCriticalIndRelated) {
+            criticalIndRelatedRows.push(rowData);
+        } else {
+            shockTransferRows.push(rowData);
         }
     }
-    const infoText = `<strong>Shock Transfer assumptions:</strong> ${basicTexts.join('; ')}.<br><strong>Critical Industry Thresholds:</strong> ${criticalIndRelatedTexts.join('; ')}`;
-    console.log('Attempting to set span HTML to be', infoText);
-    textElem.innerHTML = infoText;
+    shockTransferTbl.innerHTML = shockTransferRows.join('\n');
+    criticalIndTbl.innerHTML = criticalIndRelatedRows.join('\n');
 }

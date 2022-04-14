@@ -1,17 +1,22 @@
-## Where I left this (24th March)
+# Client for ShockNet
 
-The map kind of works:
-* For some reason, it won't draw arcs if using the main plugin, but if I incorporate
-my own copy-pasted version as `arc2` that does draw all of the arcs
-* The issue with the arcs is the D3 selection `destXY = self.path.centroid(svg.select('path.' + datum.destination).data()[0]);` - for whatever reason this isn't working with the US state labels:
-    * I though just changing this to `'path.datamaps-subunit.' + datum.destination` would be sufficient based on how the SVG renders
-    * But I didn't even need to do this, just extracted it to my codebase and it seems to work
-* However, the arcs themselves aren't that great
+## About
+The client for ShockNet is written in Javascript. It can be built and run separately, for
+development and extension purposes, but it is most convenient to use the built artefacts in
+the python webserver of the main project.
 
-I think this is way better than the python solution, and probably a bit easier to work
-with than the full-blown React version in `client-old` - although it should be noted
-that the React version itself didn't cause either of the issues (scaling - just adding a `height` to the config helped, presumably I could do that in HTML also; or the arcs - see above).
+## Non-developers
+You will save yourself a lot of hassle by not touching this subfolder, return to the README in
+the repo root folder and use the running instructions to just use pre-built Javascript.
 
-I feel like there is a way forwards with this:
-* If there is something that is actually worth visualising and interacting with, then probably start from this control but use raw d3 to actually pick up some of the country tiles, find their locations, and then can use d3 to add lines between them with more control than what we have here
-* But that is quite a lot of effort, so don't bother unless the graph analysis shows something promising
+## Developer-only instructions
+If you wish to update the Javascript, you will need to have node and npm installed with
+the correct versions (e.g. using a tool like `fnm` to manage node versions). Ensure you are
+using the node-version listed in `.node-version` and then you can run:
+
+* `npm install` to get all of the Javascript dependencies and dev dependencies installed.
+* `npm run build` is used to build the Javascript and output bundles and HTML files to the `dist`
+folder
+* `npm start` is used to start the dev webserver which serves up the Javascript and will need
+a running backend somewhere (normally a flask server running locally, see the main readme for
+instructions)

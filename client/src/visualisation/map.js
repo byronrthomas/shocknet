@@ -1,5 +1,5 @@
 import Datamap from 'datamaps';
-import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText, formatFixedPoint } from '../graph_model/formatting';
+import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText, formatFixedPoint, fixedPointAsString } from '../graph_model/formatting';
 import { distinctColor } from './colors';
 
 var defaultOptions = {
@@ -451,50 +451,68 @@ function impactedGdpPctToFillKey(gdpPercent) {
 
 
 
-function edgeToText(edge) {
+function edgeToTableRows(edge) {
   const tradedCommodity = formatGraphProducer(edge.from_id);
   if (edge.e_type === 'critical_industry_of') {
     const toReg = edgeToDestRegion(edge);
     const toLbl = graphRegionToUserText(toReg);
-    return `${tradedCommodity} is a critical industry of ${toLbl}: ${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_output))}% of national output, ${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_exports))}% of national exports, ${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_sk_labour))}% of national skilled labour value, ${pctAsString(formatFixedPoint(edge.attributes.pct_of_national_unsk_labour))}% of national unskilled labour value`;
+    const attr = edge.attributes;
+    return `<tr><td>${tradedCommodity} production is</td>` +
+    `<td></td>` +
+    `<td>${fixedPointAsString(attr.pct_of_national_output)}% of output, ${fixedPointAsString(attr.pct_of_national_exports)}% of exports, ${fixedPointAsString(attr.pct_of_national_sk_labour)}% of skilled labour, ${fixedPointAsString(attr.pct_of_national_unsk_labour)}% of unskilled labour</td>` + `<td>in ${toLbl}</td></tr>`;
   }
-  const [, toReg] = edgeToGraphRegions(edge);
+  const [fromReg, toReg] = edgeToGraphRegions(edge);
+  const fromLbl = graphRegionToUserText(fromReg);
   const toLbl = graphRegionToUserText(toReg);
-  const fromText = nodeAsSourceText({v_id: edge.from_id, v_type: edge.from_type});
-  const toText = nodeAsDestText({v_id: edge.to_id, v_type: edge.to_type});
-  
+  const producedCommodity = formatGraphProducer(edge.to_id);
+
   if (edge.e_type === 'trade_shock') {
-    return `${fromText} -> ${toText}: ${fromText} is ${pctAsString(formatFixedPoint(edge.attributes.pct_of_imported_product_total))}% of the total imported into ${toLbl}, and imported [${tradedCommodity}] makes up ${pctAsString(formatFixedPoint(edge.attributes.pct_of_producer_input))}% of the inputs to ${toText}`
+    // We format a trade shock as two rows just to improve the readability
+    const importerRow =
+      `<tr><td>${fromLbl} provides</td>` + 
+      `<td>${fixedPointAsString(edge.attributes.pct_of_imported_product_total)}%</td>` +
+      `<td>of ${tradedCommodity} imports</td>` +
+      `<td>to ${toLbl}</td></tr>\n`;
+    const producerRow = 
+      `<tr><td>${tradedCommodity} imports are</td>`+
+      `<td>${fixedPointAsString(edge.attributes.pct_of_producer_input)}%` +
+      `<td>of inputs for ${producedCommodity} production</td>` +
+      `<td>in ${toLbl}</td></tr>`;
+    return importerRow + producerRow;
   }
   if (edge.e_type === 'production_shock') {
-    return `${fromText} -> ${toText}: [${tradedCommodity}] makes up ${pctAsString(formatFixedPoint(edge.attributes.pct_of_producer_input))}% of the inputs to ${toText}`;
+    return `<tr><td>${tradedCommodity} production is</td>` +
+      `<td>${fixedPointAsString(edge.attributes.pct_of_producer_input)}%</td>` +
+      `<td>of inputs for ${producedCommodity} production</td>` +
+      `<td>in ${toLbl}</td></tr>`;
   }
   throw Error('Unknown edge type ' + edge.e_type);
 }
 
-
-
 function formatPath(path, withNumbering, i) {
-  // console.log('Going to format path', path);
-  var result = withNumbering ? `<em>Path ${i+1}</em><br>` : '';
-  for (var edge of path) {
-    result += edgeToText(edge);
-    result += '<br>';
+  console.log('About to format path', path);
+  let result = withNumbering ? `<tr><td><em>Shock chain ${i+1}</em></td><td></td><td></td><td></td></tr>` : '';
+  for (const edge of path) {
+    result += edgeToTableRows(edge);
+    result += '\n';
   }
   return result;
 }
 
-function showPathsToEndPoint(pathsOutputElem, {graphRegion}, allPaths) {
+function showPathsToEndPoint({shockPathHdr, shockPathDetails}, {graphRegion}, allPaths) {
   // console.log('Going to show paths based on ', mapData);
   // console.log('Will add to', pathsOutputElem);
   // console.log('Got paths', allPaths);
-  var fullPathOutput = `<strong>Showing how shocks reach ${graphRegionToUserText(graphRegion)}</strong><br>`;
-  fullPathOutput += allPaths.filter(path => path[path.length - 1]['to_id'] == graphRegion).map((x, i) => formatPath(x, true, i)).join('<br>');
-  pathsOutputElem.innerHTML = fullPathOutput;
+  shockPathHdr.innerHTML = `<strong>Showing how shocks reach ${graphRegionToUserText(graphRegion)}</strong><br>`;
+  const fullPathOutput = allPaths.filter(path => path[path.length - 1]['to_id'] == graphRegion).map((x, i) => formatPath(x, true, i)).join('\n');
+  shockPathDetails.innerHTML = fullPathOutput;
 }
 
-function clearPathDetails(pathsOutputElem) {
-  pathsOutputElem.innerHTML = '';
+
+
+function clearPathDetails({shockPathHdr, shockPathDetails}) {
+  shockPathHdr.innerHTML = '';
+  shockPathDetails.innerHTML = '';
 }
 
 function formatPathSummary(path) {
@@ -513,20 +531,20 @@ function addLi(listElem, userText, clickHandler) {
   listElem.appendChild(li);
 }
 
-function showPathDetail(pathsOutputElem, path) {
+function showPathDetail({shockPathHdr, shockPathDetails}, path) {
   // console.log('Going to show paths based on ', mapData);
   // console.log('Will add to', pathsOutputElem);
   // console.log('Got paths', allPaths);
-  var fullPathOutput = `<strong>Path  ${formatPathSummary(path)}</strong><br>`;
-  fullPathOutput += formatPath(path, false);
-  pathsOutputElem.innerHTML = fullPathOutput;
+  shockPathHdr.innerHTML = `<strong>Path  ${formatPathSummary(path)}</strong><br>`;
+  const fullPathOutput = formatPath(path, false);
+  shockPathDetails.innerHTML = fullPathOutput;
 }
 
-function showPathSummaries(allPathsListElem, allPaths, pathsOutputElem) {
+function showPathSummaries(allPathsListElem, allPaths, pathDetailsElems) {
   // Reverse sort by path length
   allPaths.sort((b, a) => a.length - b.length);
   for (const path of allPaths) {
-    const handler = () => showPathDetail(pathsOutputElem, path);
+    const handler = () => showPathDetail(pathDetailsElems, path);
     addLi(allPathsListElem, formatPathSummary(path), handler);
   }
 }
@@ -538,7 +556,7 @@ function clearPathsList(allPathsListElem) {
   }
 }
 
-export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affectedCountryData, sectorLinkData, allPaths) {
+export function mapShocks(shock_map, pathDetailsElems, allPathsListElem, affectedCountryData, sectorLinkData, allPaths) {
   mode = SHOCK_TRANSFER_MODE;
   let data = {};
   // console.log('Affected country data = ', affectedCountryData);
@@ -552,7 +570,7 @@ export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affected
   shock_map.updateChoropleth(data, {reset: true});
 
   // Reset the path details view
-  clearPathDetails(pathDetailsElem);
+  clearPathDetails(pathDetailsElems);
   clearPathsList(allPathsListElem);
   // Now reset any previous click handlers
   var subunits = shock_map.svg.select('g.datamaps-subunits');
@@ -560,7 +578,7 @@ export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affected
   // And add a click handler for every affected country
   for (affected in affectedCountryData) {
     const extraData = data[affected];
-    shock_map.svg.select('path.' + affected).on('click', () => showPathsToEndPoint(pathDetailsElem, extraData, allPaths));
+    shock_map.svg.select('path.' + affected).on('click', () => showPathsToEndPoint(pathDetailsElems, extraData, allPaths));
   } 
  
   // Arcs coordinates can be specified explicitly with latitude/longtitude,
@@ -624,7 +642,7 @@ export function mapShocks(shock_map, pathDetailsElem, allPathsListElem, affected
     }
   });
 
-  showPathSummaries(allPathsListElem, allPaths, pathDetailsElem);
+  showPathSummaries(allPathsListElem, allPaths, pathDetailsElems);
 
 }
 

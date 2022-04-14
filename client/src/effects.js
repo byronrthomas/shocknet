@@ -112,7 +112,10 @@ function handleRunAnalysisClick() {
 
 runBtn.addEventListener('click', handleRunAnalysisClick);
 
-const pathsOutputElem = document.getElementById('pathsOutputElem');
+const pathsOutputElems = {
+    shockPathHdr: document.getElementById('pShockPathHdr'),
+    shockPathDetails: document.getElementById('tblShockPathDetails'),
+};
 const allPathsListElem = document.getElementById('shockedPathsList');
 function runShockReach(vertices, /*handler*/) {
     const oldText = showButtonLoading(runBtn);
@@ -127,7 +130,7 @@ function runShockReach(vertices, /*handler*/) {
             console.log(response['data']);
             const affectedCountryData = prepareCountryData(response['data']);
             const sectorLinkData = prepareLinkData(response['data']);
-            mapShocks(mapControl, pathsOutputElem, allPathsListElem, affectedCountryData, sectorLinkData, response['data']['all_paths']);
+            mapShocks(mapControl, pathsOutputElems, allPathsListElem, affectedCountryData, sectorLinkData, response['data']['all_paths']);
         })
         .catch(function (error) 
         {

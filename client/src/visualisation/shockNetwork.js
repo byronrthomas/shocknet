@@ -51,7 +51,9 @@ function nodeHoverTemplate(data) {
     // console.log('lbl', lbl);
     return `<strong>${lbl}</strong>` +
     `<br>${fixedPointAsString(data.pct_of_national_output)}% of National Output` +
-    `<br>$${fixedPointAsString(data.market_val_dollars)}M output` ;
+    `<br>${fixedPointAsString(data.pct_of_national_exports)}% of National Exports` +
+    `<br>${fixedPointAsString(data.pct_of_national_sk_labour)}% of National Skilled Labour value` +
+    `<br>${fixedPointAsString(data.pct_of_national_unsk_labour)}% of National Unskilled Labour value` ;
 }
 
 function edgeToText(edge) {
@@ -60,7 +62,7 @@ function edgeToText(edge) {
     if (edge.e_type === 'critical_industry_of') {
       const toReg = edgeToDestRegion(edge);
       const toLbl = graphRegionToUserText(toReg);
-      return `${tradedCommodity} is a critical industry of ${toLbl} (${fixedPointAsString(edge.attributes.pct_of_national_output)}% of national output)`;
+      return `${tradedCommodity} is a critical industry of ${toLbl}: ${fixedPointAsString(edge.attributes.pct_of_national_output)}% of national output, ${fixedPointAsString(edge.attributes.pct_of_national_exports)}% of national exports, ${fixedPointAsString(edge.attributes.pct_of_national_sk_labour)}% of national skilled labour value, ${fixedPointAsString(edge.attributes.pct_of_national_unsk_labour)}% of national unskilled labour value`;
     }
     const [, toReg] = edgeToGraphRegions(edge);
     const toLbl = graphRegionToUserText(toReg);

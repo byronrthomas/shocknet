@@ -8,5 +8,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY shocknet ./shocknet
 COPY resources ./resources
 
-CMD ["shocknet.webserver"]
-ENTRYPOINT ["python", "-m"]
+CMD ["--bind-all"]
+ENTRYPOINT ["python", "-m", "shocknet.start"]

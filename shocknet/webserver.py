@@ -52,8 +52,11 @@ def originators():
 def selfCheck():
     return jsonify(db.run_data_quality_selfcheck(conn))
 
-def main():
-    api.run() 
+def main(bind_all_addresses=False):
+    if bind_all_addresses:
+        api.run(host='0.0.0.0')
+    else:
+        api.run() 
 
 if __name__ == '__main__':
     main()

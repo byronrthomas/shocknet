@@ -1,4 +1,4 @@
-INTERPRET QUERY post_process_producers(/* Parameters here */) FOR GRAPH economic_links {
+INTERPRET QUERY post_process_producers(/* Parameters here */) FOR GRAPH shocknet_economic_links {
 /**
     Ensures the pct-age of labour market stats are copied onto producers directly
     (makes conditioning logic and UI presentation much more convenient).

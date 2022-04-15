@@ -1,4 +1,4 @@
-INTERPRET QUERY bfs_reachability1(SET<VERTEX> starting_nodes, SET<STRING> allowed_edge_types, SET<STRING> allowed_vertex_types, BOOL report_links = FALSE) FOR GRAPH economic_links { 
+INTERPRET QUERY bfs_reachability1(SET<VERTEX> starting_nodes, SET<STRING> allowed_edge_types, SET<STRING> allowed_vertex_types, BOOL report_links = FALSE) FOR GRAPH shocknet_economic_links { 
   TYPEDEF TUPLE<VERTEX from_vertex, VERTEX to_vertex, EDGE e> link;
   OrAccum<BOOL> @visited;
   SetAccum<EDGE> @@allEdges;

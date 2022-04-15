@@ -1,4 +1,4 @@
-INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, INT national_output_thresh, INT export_pct_thresh, INT skilled_labour_pct_thresh, INT unskilled_labour_pct_thresh, BOOL critical_industry_meets_all_thresholds, BOOL debug_output = FALSE) FOR GRAPH economic_links { 
+INTERPRET QUERY condition_graph1(INT input_pct_thresh, INT import_pct_thresh, INT national_output_thresh, INT export_pct_thresh, INT skilled_labour_pct_thresh, INT unskilled_labour_pct_thresh, BOOL critical_industry_meets_all_thresholds, BOOL debug_output = FALSE) FOR GRAPH shocknet_economic_links { 
     // Clear edges out before inserting
     Result = SELECT p1 FROM producer:p1 -(trade_shock>:e)- producer:p2
     ACCUM DELETE(e);

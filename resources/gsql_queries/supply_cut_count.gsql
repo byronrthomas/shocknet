@@ -1,4 +1,4 @@
-INTERPRET QUERY supply_cut_count(SET<VERTEX <producer>> cuts) FOR GRAPH economic_links { 
+INTERPRET QUERY supply_cut_count(SET<VERTEX <producer>> cuts) FOR GRAPH shocknet_economic_links { 
   TYPEDEF TUPLE<string from_country, string from_product, string edge_type, string to_country, string to_product> linkRecord;
   TYPEDEF TUPLE<VERTEX from_p, VERTEX to_p> link;
   ListAccum<linkRecord>    @@links;

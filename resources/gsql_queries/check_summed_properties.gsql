@@ -1,4 +1,4 @@
-INTERPRET QUERY checked_summed_properties_7(/* Parameters here */) FOR GRAPH economic_links { 
+INTERPRET QUERY checked_summed_properties_7(/* Parameters here */) FOR GRAPH shocknet_economic_links { 
   SumAccum<UINT> @national_output, @national_export, @national_sk_lab, @national_unsk_lab, @producer_output, @producer_input, @importer_input;
   
   res = 

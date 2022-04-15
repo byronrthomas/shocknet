@@ -1,4 +1,4 @@
-INTERPRET QUERY check_conditioned_edges_3(/* Parameters here */) FOR GRAPH economic_links { 
+INTERPRET QUERY check_conditioned_edges_3(/* Parameters here */) FOR GRAPH shocknet_economic_links { 
   /**
   Query to sanity check conditioned edge generation using a very simple invariant - there should
   be fewer conditioned edges than original edges. This applies to the graph as a whole, but also

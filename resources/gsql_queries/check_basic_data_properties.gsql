@@ -1,4 +1,4 @@
-INTERPRET QUERY check_data_5(/* Parameters here */) FOR GRAPH economic_links { 
+INTERPRET QUERY check_data_5(/* Parameters here */) FOR GRAPH shocknet_economic_links { 
   TYPEDEF TUPLE<Vertex<producer> from_producer, Vertex<importer> to_importer> tradeRec;
   TYPEDEF TUPLE<Vertex<producer> from_producer, Vertex<producer> to_producer> domesticInputRec;
   TYPEDEF TUPLE<Vertex<importer> from_importer, Vertex<producer> to_producer> importedInputRec;

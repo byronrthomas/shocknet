@@ -1,6 +1,9 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
+
+const backendUrl = process.env.BUILD_FOR_DOCKER ? 'http://127.0.0.1:9000' : 'http://127.0.0.1:5000';
 
 module.exports = {
   mode: 'development',
@@ -42,8 +45,10 @@ module.exports = {
       patterns: [
           { from: 'static' }
       ]
-    })
-],
+    }),
+    new webpack.DefinePlugin({
+      __BACKEND_BASEURL__: JSON.stringify(backendUrl)}),
+  ],
   module: {
     rules: [{
       enforce: 'pre',

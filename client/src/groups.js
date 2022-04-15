@@ -5,7 +5,8 @@ import { showButtonLoading, reenableButton } from './visualisation/sharedWidgetL
 
 
 // TODO: pull from env
-const HOST = 'http://127.0.0.1:5000'
+// eslint-disable-next-line no-undef
+const HOST = __BACKEND_BASEURL__
 const axInstance = axios.create({
     baseURL: HOST,
     // Match TG timeout at least

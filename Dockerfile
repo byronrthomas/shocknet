@@ -8,5 +8,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY tgfinance2022 ./tgfinance2022
 COPY resources ./resources
 
-CMD [ "-m", "tgfinance2022.webserver" ]
-ENTRYPOINT ["python"]
+CMD ["tgfinance2022.webserver"]
+ENTRYPOINT ["python", "-m"]

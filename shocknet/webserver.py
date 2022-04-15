@@ -1,5 +1,5 @@
 import json
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
 import shocknet.graph_db as db
 from shocknet import shocks
@@ -51,6 +51,10 @@ def originators():
 @api.route('/self-check', methods=['GET'])
 def selfCheck():
     return jsonify(db.run_data_quality_selfcheck(conn))
+
+@api.route('/')
+def hello():
+    return redirect("/static/effects.html", code=302)
 
 def main(bind_all_addresses=False):
     if bind_all_addresses:

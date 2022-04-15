@@ -272,7 +272,7 @@ def run_shocks_query(config, starting_producers):
 def main(args):
     cfg = make_config()
     if args['write-data']:
-        base_path = '/Users/byron/projects/hackathon/tg-graphforall/GTAP-initial/extracted/fully-disagg'
+        base_path = 'resources/gtap_extracted/fully-disagg'
         paths = {
             'VOM': f'{base_path}-BaseView-VOM.pkl.bz2',
             'VXMD': f'{base_path}-BaseData-VXMD.pkl.bz2',

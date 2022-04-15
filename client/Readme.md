@@ -10,7 +10,7 @@ You will save yourself a lot of hassle by not touching this subfolder, return to
 the repo root folder and use the running instructions to just use pre-built Javascript.
 
 ## Developer-only instructions
-If you wish to update the Javascript, you will need to have node and npm installed with
+If you wish to update the Javascript, you will need to have node 16 installed with
 the correct versions (e.g. using a tool like `fnm` to manage node versions). Ensure you are
 using the node-version listed in `.node-version` and then you can run:
 
@@ -20,3 +20,6 @@ folder
 * `npm start` is used to start the dev webserver which serves up the Javascript and will need
 a running backend somewhere (normally a flask server running locally, see the main readme for
 instructions)
+
+Once you have this, a webpage should open with the frontend running locally, changes you make
+to Javascript code will be hot reloaded after this

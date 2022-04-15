@@ -5,8 +5,8 @@ WORKDIR /usr/src/app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY tgfinance2022 ./tgfinance2022
+COPY shocknet ./shocknet
 COPY resources ./resources
 
-CMD ["tgfinance2022.webserver"]
+CMD ["shocknet.webserver"]
 ENTRYPOINT ["python", "-m"]

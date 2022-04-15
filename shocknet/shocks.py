@@ -1,6 +1,6 @@
 from importlib.resources import path
 import json
-import tgfinance2022.graph_db as db
+import shocknet.graph_db as db
 import urllib.parse
 
 def current_condition(conn):

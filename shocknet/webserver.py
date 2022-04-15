@@ -1,8 +1,8 @@
 import json
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import tgfinance2022.graph_db as db
-from tgfinance2022 import shocks
+import shocknet.graph_db as db
+from shocknet import shocks
 
 companies = [{"id": 1, "name": "Company One"}, {"id": 2, "name": "Company Two"}]
 

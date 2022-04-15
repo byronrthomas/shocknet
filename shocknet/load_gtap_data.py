@@ -269,17 +269,20 @@ def run_shocks_query(config, starting_producers):
     print(f'All affected countries ({len(affected_countries)})...')
     print(affected_countries)
 
+def write_standard_data(config):
+    base_path = 'resources/gtap_extracted/fully-disagg'
+    paths = {
+        'VOM': f'{base_path}-BaseView-VOM.pkl.bz2',
+        'VXMD': f'{base_path}-BaseData-VXMD.pkl.bz2',
+        'VDFM': f'{base_path}-BaseData-VDFM.pkl.bz2',
+        'VIFM': f'{base_path}-BaseData-VIFM.pkl.bz2',
+        'VFM': f'{base_path}-BaseData-VFM.pkl.bz2',}
+    write_data(config, paths)
+
 def main(args):
     cfg = make_config()
     if args['write-data']:
-        base_path = 'resources/gtap_extracted/fully-disagg'
-        paths = {
-            'VOM': f'{base_path}-BaseView-VOM.pkl.bz2',
-            'VXMD': f'{base_path}-BaseData-VXMD.pkl.bz2',
-            'VDFM': f'{base_path}-BaseData-VDFM.pkl.bz2',
-            'VIFM': f'{base_path}-BaseData-VIFM.pkl.bz2',
-            'VFM': f'{base_path}-BaseData-VFM.pkl.bz2',}
-        write_data(cfg, paths)
+        write_standard_data(cfg)
     else:
         conn = initDbWithToken(cfg, GRAPHNAME)
         mex_oil = producer_code(product_code='oil', country_code='mex')

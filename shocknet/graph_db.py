@@ -202,6 +202,8 @@ def run_data_quality_selfcheck(conn):
     res.append(conn.runInterpretedQuery(read_resource('resources/gsql_queries/check_conditioned_edges.gsql')))
     return res
 
+def install_standard_queries(config):
+    install_queries(config, STANDARD_QUERIES)
 
 if __name__ == "__main__":
     args = check_args()
@@ -215,7 +217,7 @@ if __name__ == "__main__":
 
         if args['install-standard-queries']:
             try:
-                install_queries(make_config(), STANDARD_QUERIES)
+                install_standard_queries(make_config())
             except BaseException as err:
                 print(traceback.format_exc())
                 print(f"Unexpected issue:\n\t{err} ({type(err)})")

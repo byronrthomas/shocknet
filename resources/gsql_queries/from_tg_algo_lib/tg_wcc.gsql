@@ -1,4 +1,4 @@
-CREATE QUERY tg_wcc (SET<STRING> v_type, SET<STRING> e_type, INT output_limit = 100,
+CREATE OR REPLACE QUERY tg_wcc (SET<STRING> v_type, SET<STRING> e_type, INT output_limit = 100,
  BOOL print_accum = TRUE, STRING result_attr = "", STRING file_path = "") SYNTAX V1 {
 
 // NOTE: taken from TigerGraph In-Database Graph Data Science Algorithm Library 

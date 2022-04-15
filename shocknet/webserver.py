@@ -52,5 +52,8 @@ def originators():
 def selfCheck():
     return jsonify(db.run_data_quality_selfcheck(conn))
 
-if __name__ == '__main__':
+def main():
     api.run() 
+
+if __name__ == '__main__':
+    main()

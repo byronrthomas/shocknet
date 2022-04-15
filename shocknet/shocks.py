@@ -205,10 +205,7 @@ def condition_graph_fixed_point(conn, input_thresh, import_thresh, critical_ind_
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/condition_graph.gsql'), params)
     print(res)
     set_condition(conn, input_thresh=input_thresh, import_thresh=import_thresh, critical_ind_gdp_thresh=critical_ind_gdp_thresh, critical_ind_export_thresh=critical_ind_export_thresh, critical_ind_skilled_lab_thresh=critical_ind_skilled_lab_thresh, critical_ind_unskilled_lab_thresh=critical_ind_unskilled_lab_thresh, critical_ind_meets_all_thresholds=critical_ind_meets_all_thresholds)
-    try:
-        print(conn.getEdgeStats('*'))
-    except BaseException as err:
-        print('WARN: Unable to get stats:', err)
+    
 
 def summarise_country_groups_from_query(all_nodes, group_attrib_name):
     country_nodes = [c for c in all_nodes if c['v_type'] == 'country']

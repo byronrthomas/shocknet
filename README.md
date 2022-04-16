@@ -5,8 +5,6 @@
 * Stick a tigergaph attrib on page
 * Instructions has to include the query install step (or start from a starter that would have stuff - although then we get data too :( )
 
-## Limitations of model
-* Doesn't explicitly call out the obvious shock, e.g. "if no petrol products from gulf, then no petrol products on sale for public" - it's more focused on how shocks create other shocks.
 
 ## Troubleshooting
 See an error like ("Please run 'gadmin config set RESTPP.Factory.EnableAuth true' to enable this endpoint.", 'REST-1000'). This can mean that you're not running against TG cloud but instead against a locally installed TG Enterprise instance which doesn't have the same security setup. In order to make compatible you need to take the following steps to reconfigure Tigergraph.
@@ -67,13 +65,16 @@ ShockNet can be run locally in one of several modes, in decreasing levels of con
 Based on the method you choose to run with, the dependencies vary:
  - You always need an empty instance of Tigergraph cloud
  - If running the recommended way, you will need docker
- - If running as a developer, you will need python 3.7, and to run the front-end with freshly built assets, you will need to have node.js 16
+ - If running as a developer, you will need python 3.7 or higher, and to run the front-end with freshly built assets, you will need to have node.js 16
 
 The installation instructions below describe how to install the code dependencies once you have the above.
 
 ## Installation
 
-Assuming you have an empty Tigergraph cloud instance, then you can proceed as follows
+You will need the basic tools described in the dependencies section, and an empty Tigergraph cloud instance. Then follow instructions based on which kind of installation you would like - it is highly recommended you use the docker or python methods only, this saves installing a lot of tools that are only necessary for those who want to change the code.
+
+**IMPORTANT** Ensure Tigergraph is running before you run any shocknet commands or it
+may hang indefinitely waiting for a connection.
 
 ### Installing & running using docker - recommended
 
@@ -82,8 +83,6 @@ Assuming you have docker on your system, the steps are as follows:
 2. Download the `.env.template` file in this repo into that directory
 3. Rename it to be `.env`, i.e. `mv .env.template .env`
 4. Edit the `.env` file to update the HOSTNAME, PASSWORD and USERNAME variables to connect to your Tigergraph cloud instance
-
-**YOU CAN LEAVE THE SECRET BLANK**
 
 Then in the same directory, set ShockNet to initialise the graph database for you:
 `docker run -it -v $(pwd)/.env:/usr/src/app/.env --rm --name shocknet byronthomas712/shocknet:latest --initialise`
@@ -101,12 +100,14 @@ app, you just need to open your browser to http://127.0.0.1:9000
 
 ### Installing & running - using Python
 
-Assuming that you have python version 3.7 available locally (I suggest you use a tool like [pyenv](https://github.com/pyenv/pyenv) if you need to manage multiple python versions and dependency environments), you should do the following
+Assuming that you have python version 3.7 or higher and pip available locally (I suggest you use a tool like [pyenv](https://github.com/pyenv/pyenv) if you need to manage multiple python versions and dependency environments), you should do the following
 
 1. Clone this repo
 2. In the root folder that you cloned, copy the `.env.template` file to be `.env`, i.e. `cp .env.template .env`
 3. Edit the `.env` file to update the HOSTNAME, PASSWORD and USERNAME variables to connect to your Tigergraph cloud instance
 4. Install the python dependencies locally using `pip install -r requirements.txt`
+
+**NOTE**: the below commands assume your command to launch python > 3.7 is `python` - depending on your setup, you might need to replace `python` with `python3` in the commands below.
 
 Then you can run ShockNet to initialise the graph DB for you, from the root folder of this repo on your machine:
 `python -m shocknet.start --initialise`
@@ -145,7 +146,13 @@ After the process has finished the icons for the two queries should look like th
 
 ## Known Issues and Future Improvements
 
-Explain known liminations within the project and potential next steps. 
+The biggest limitation is the lack of any notion of demand and elasticities which 
+reduces the usefulness of the results. I have some plans to introduce a fairly simple extension
+to the model to help with this, but I unfortunately didn't have time to complete it within
+the hackathon period.
+
+Another angle to investigate would be updating the data used in the model and/or finding 
+alternative sources that could enrich what we have.
 
 ## Reflections
 

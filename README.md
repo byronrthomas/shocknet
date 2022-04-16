@@ -109,7 +109,7 @@ Assuming that you have python version 3.7 or higher and pip available locally (I
 3. Edit the `.env` file to update the HOSTNAME, PASSWORD and USERNAME variables to the values needed to connect to your Tigergraph cloud instance
 4. Install the python dependencies locally using `pip install -r requirements.txt`
 
-**NOTE**: the below commands assume your command to launch python > 3.7 is `python` - depending on your setup, you might need to replace `python` with `python3` in the commands below.
+**NOTE**: the below commands assume your command to launch python >= 3.7 is `python` - depending on your setup, you might need to replace `python` with `python3` in the commands below.
 
 Then you can run ShockNet to initialise the graph DB for you, from the root folder of this project run:
 
@@ -148,6 +148,12 @@ After the process has finished the icons for the two queries should look like th
 
 ![GraphStudio after query installation](docs/images/graph-studio-after-queries-installed.png)
 
+### Troubleshooting
+
+If you see any issues with starting shocknet - either it hangs indefinitely or gives an error like `local variable 'res' referenced before assignment` - double-check your .env file is present in the current directory, the credentials and hostname are correct, and check that your Tigergraph instance is up and running.
+
+If you get clashes with other graphs in the same instance, then you may have to drop them, you can pass the `--drop-all-schema` args to the initialise process to do this. Finally, if you have any issues with the secret, you can always manually create one in GraphStudio Admin page, and add it to the `.env` file either adding or replacing a line starting `SECRET=`.
+
 ## Known Issues and Future Improvements
 
 The biggest limitation is the lack of any notion of demand and elasticities which 
@@ -165,3 +171,8 @@ Review the steps you took to create this project and the resources you were prov
 ## References
 
 Please give credit to other projects, videos, talks, people, and other sources that have inspired and influenced your project. 
+
+### GTAP 8 Data Base
+Narayanan, G., Badri, Angel Aguiar and Robert McDougall, Eds. 2012. Global Trade, Assistance, and Production: The GTAP 8 Data Base, Center for Global Trade Analysis, Purdue University
+
+I extracted this data using the steps documented [here](./docs/data-extraction.md)

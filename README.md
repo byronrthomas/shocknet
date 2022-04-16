@@ -82,17 +82,19 @@ Assuming you have docker on your system, the steps are as follows:
 1. Create a directory where you like to run from, e.g. `mkdir shocknet`
 2. Download the `.env.template` file in this repo into that directory
 3. Rename it to be `.env`, i.e. `mv .env.template .env`
-4. Edit the `.env` file to update the HOSTNAME, PASSWORD and USERNAME variables to connect to your Tigergraph cloud instance
+4. Edit the `.env` file to update the HOSTNAME, PASSWORD and USERNAME variables to the values needed to connect to your Tigergraph cloud instance
 
-Then in the same directory, set ShockNet to initialise the graph database for you:
+Run ShockNet to initialise the graph database for you, by running this from the same directory as your `.env` file:
+
 `docker run -it -v $(pwd)/.env:/usr/src/app/.env --rm --name shocknet byronthomas712/shocknet:latest --initialise`
 
 This will create the schema, by using the credentials from the `.env` file, and write all of the data into the
 graph. It will also request a secret for accessing the database and write it back to the `.env` file.
 
-Once this finishes, you will need to use Tigergraph GraphStudio to install queries - see instructions below [Installing queries in GraphStudio], and then return here.
+Once this finishes, you will need to use Tigergraph GraphStudio to install queries - see instructions below [Installing queries in GraphStudio](#installing-queries-in-graphstudio), and then return here.
 
-Once ShockNet has initialised, and you have installed the queries manually, then you can launch ShockNet, from the same directory:
+Once ShockNet has initialised, and you have installed the queries manually, then you can launch ShockNet, running in the same directory:
+
 `docker run -it -p 127.0.0.1:9000:5000 -v $(pwd)/.env:/usr/src/app/.env --rm --name shocknet byronthomas712/shocknet:latest`
 
 This will launch with the webserver running inside the container, available at port 9000, so to launch the
@@ -104,20 +106,22 @@ Assuming that you have python version 3.7 or higher and pip available locally (I
 
 1. Clone this repo
 2. In the root folder that you cloned, copy the `.env.template` file to be `.env`, i.e. `cp .env.template .env`
-3. Edit the `.env` file to update the HOSTNAME, PASSWORD and USERNAME variables to connect to your Tigergraph cloud instance
+3. Edit the `.env` file to update the HOSTNAME, PASSWORD and USERNAME variables to the values needed to connect to your Tigergraph cloud instance
 4. Install the python dependencies locally using `pip install -r requirements.txt`
 
 **NOTE**: the below commands assume your command to launch python > 3.7 is `python` - depending on your setup, you might need to replace `python` with `python3` in the commands below.
 
-Then you can run ShockNet to initialise the graph DB for you, from the root folder of this repo on your machine:
+Then you can run ShockNet to initialise the graph DB for you, from the root folder of this project run:
+
 `python -m shocknet.start --initialise`
 
 This will create the schema, by using the credentials from the `.env` file, and write all of the data into the
 graph. It will also request a secret for accessing the database and write it back to the `.env` file.
 
-Once this finishes, you will need to use Tigergraph GraphStudio to install queries - see instructions below [Installing queries in GraphStudio], and then return here.
+Once this finishes, you will need to use Tigergraph GraphStudio to install queries - see instructions below [Installing queries in GraphStudio](#installing-queries-in-graphstudio), and then return here.
 
 Once ShockNet has initialised, and you have installed the queries manually, then you can launch ShockNet, from the same directory:
+
 `python -m shocknet.start`
 
 This will launch with the webserver running locally, available at port 5000, so to launch the

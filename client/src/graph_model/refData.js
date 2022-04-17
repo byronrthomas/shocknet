@@ -349,3 +349,4 @@ export const regionNamesToMultiCountries = {
     },
 }
 
+export const nonTradables = new Set(["Land", "UnSkLab", "SkLab", "Capital", "NatRes"]);

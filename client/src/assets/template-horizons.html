@@ -29,7 +29,7 @@
       </div>
 
       <div class="subpage-header">
-        <h3 class="subpage-title">Horizon scanning mode: what future shocks might affect our chosen sectors</h3>
+        <h3 class="subpage-title">Horizon scanning mode: what shocks might affect sectors that need protecting</h3>
       </div>
 
       <div class="well">
@@ -392,6 +392,29 @@
         <div id="networkVisualisation" class="center-block"></div>
       </div>
     </div>
+
+    <div class="container">
+      <div id="shockSpreadDetails" class="well">
+        <h3>Influenceable shocks for producers to protect</h3>
+        <p>For each producer to protect that is at risk of shocks,
+          the below shows the shock transfers that occur
+          within the same country - ordered by lowest market value (assumed to be easier
+          to replace / substitute).
+        </p>
+        <table class="table">
+          <thead>
+            <th>Producer to protect</th>
+            <th>Shock arrives via producer</th>
+            <th>Using</th>
+            <th>Of Input</th>
+            <th># of shock paths</th>
+          </thead>
+          <tbody id="tblShockPathDetails"></tbody>
+        </table>
+        <p id="pOmittedProducerDetails"></p>
+      </div>
+    </div>
+
 
     <div class="tooltip">Hover over me
       <span class="tooltiptext">Tooltip text</span>

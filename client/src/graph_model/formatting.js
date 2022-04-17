@@ -38,6 +38,14 @@ function graphProducerToGraphRegion(code) {
     return code.substring(0, 3);
   }
 
+export function graphProducerToGraphCommod(graphProducer) {
+  if (graphProducer.length < 7) {
+    // Should be a [three letter country code]-[three letter commod code] pattern
+    throw Error(`Cannot format as a producer: ${graphProducer}`);
+  }
+  return graphProducer.substring(4)
+}
+
 function unknownNodeType({v_type, v_id}) {
     throw Error(`Don't know how to handle node type ${v_type} to format ${v_id}`);
 }

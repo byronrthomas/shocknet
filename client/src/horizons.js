@@ -5,6 +5,7 @@ import { getShockedProducerState, initShockedProducersInput } from './user_input
 import { initShockNetwork, updateNetwork } from './visualisation/shockNetwork';
 import { shockOriginationFiveCountries } from './trialData';
 import { showButtonLoading, reenableButton } from './visualisation/sharedWidgetLogic';
+import {updatePaths} from './visualisation/horizonPathOutput';
 
 // TODO: pull from env
 // eslint-disable-next-line no-undef
@@ -115,8 +116,8 @@ function handleRunAnalysisClick() {
 
 runBtn.addEventListener('click', handleRunAnalysisClick);
 
-// const pathsOutputElem = document.getElementById('pathsOutputElem');
-// const allPathsListElem = document.getElementById('shockedPathsList');
+const shockPathDetails = document.getElementById('tblShockPathDetails');
+const shockDetailsOmitted = document.getElementById('pOmittedProducerDetails');
 function runShockOrigination(vertices, /*handler*/) {
     const oldText = showButtonLoading(runBtn);
     console.log("Running shock reach analysis for", vertices);
@@ -129,6 +130,8 @@ function runShockOrigination(vertices, /*handler*/) {
             console.log('Got a successful response');
             console.log(response['data']);
             updateNetwork(shockVis, response['data']);
+            const shocks = response['data'];
+            updatePaths(shockPathDetails, shockDetailsOmitted, shocks['domestic_edges_by_targets'], shocks['distinct_path_counts_by_targets']);
             if (response.data.all_paths.length === 0) {
                 swal('No results to display', 'Under the current model assumptions, no shocks are able to reach the producers you wish to protect - perhaps you should loosen the assumptions (decrease some thresholds)?', 'info');
             }

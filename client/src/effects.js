@@ -1,4 +1,5 @@
 import axios from 'axios';
+import swal from 'sweetalert';
 import {prepareCountryData, initMap, prepareLinkData, mapShocks} from './visualisation/map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setCurrentAssumptionInfo} from './user_input/assumptionInputs';
 import { getShockedProducerState, initShockedProducersInput } from './user_input/shockedProducerInput';
@@ -62,7 +63,7 @@ function handleSubmitAssumptions() {
     console.log('Update model assumptions clicked');
     const assumptionState = getAssumptionInputState();
     if (assumptionState.errors) {
-        alert(`Cannot update:\n${assumptionState.errors.join('\n')}`);
+        swal('Cannot update assumptions', `Invalid values:\n${assumptionState.errors.join('\n')}`, 'error');
     } else {
         const data = assumptionState.success;
         console.log('About to update model with assumptions =', data);
@@ -99,7 +100,7 @@ const mapControl = initMap(mapElem);
 const runBtn = document.getElementById("btnRunAnalysis");
 function handleRunAnalysisClick() {
     if (!currentAssumptions) {
-        alert('You must set some model assumptions before running analyses!');
+        swal('Cannot run analysis', 'You must set some model assumptions before running analyses!', 'error');
         return;
     }
     const shockSelection = getShockedProducerState();
@@ -107,7 +108,8 @@ function handleRunAnalysisClick() {
     if (shockSelection.length > 0) {
         runShockReach(shockSelection);
     } else {
-        alert('You must select some starting producers to shock before analysing how the shock spreads!');
+        swal('Cannot run analysis', 'You must select some producers experiencing supply shocks to be able to analyse how the shock spreads!', 'error');
+        return;
     }
 }
 

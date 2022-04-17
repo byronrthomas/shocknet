@@ -1,4 +1,5 @@
 import axios from 'axios';
+import swal from 'sweetalert';
 import {initMap, mapShockGroups} from './visualisation/map';
 import {initAssumptionsInput, getAssumptionInputState, setInitialAssumptionState, setCurrentAssumptionInfo} from './user_input/assumptionInputs';
 import { showButtonLoading, reenableButton } from './visualisation/sharedWidgetLogic';
@@ -51,7 +52,7 @@ function handleSubmitAssumptions() {
     console.log('Update model assumptions clicked');
     const assumptionState = getAssumptionInputState();
     if (assumptionState.errors) {
-        alert(`Cannot update:\n${assumptionState.errors.join('\n')}`);
+        swal('Cannot update assumptions', `Invalid values:\n${assumptionState.errors.join('\n')}`, 'error');
     } else {
         const data = assumptionState.success;
         console.log('About to update model with assumptions =', data);
@@ -89,7 +90,7 @@ const mapControl = initMap(mapElem);
 const runBtn = document.getElementById("btnRunAnalysis");
 function handleRunAnalysisClick() {
     if (!currentAssumptions) {
-        alert('You must set some model assumptions before running analyses!');
+        swal('Cannot run analysis', 'You must set some model assumptions before running analyses!', 'error');
         return;
     }
 

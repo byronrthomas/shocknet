@@ -70,10 +70,10 @@ function edgeToText(edge) {
     const toText = nodeAsDestText({v_id: edge.to_id, v_type: edge.to_type});
     
     if (edge.e_type === 'trade_shock') {
-      return `${fromText} is ${fixedPointAsString(edge.attributes.pct_of_imported_product_total)}% of the total imported into ${toLbl}, and imported [${tradedCommodity}] makes up ${fixedPointAsString(edge.attributes.pct_of_producer_input)}% of the inputs to ${toText}`
+      return `${fromText} is ${fixedPointAsString(edge.attributes.pct_of_imported_product_total)}% of the total imported into ${toLbl}, and imported ${tradedCommodity} makes up ${fixedPointAsString(edge.attributes.pct_of_producer_input)}% of the inputs to ${toText}`
     }
     if (edge.e_type === 'production_shock') {
-      return `[${tradedCommodity}] in ${toLbl} makes up ${fixedPointAsString(edge.attributes.pct_of_producer_input)}% of the inputs to ${toText}`;
+      return `${tradedCommodity} in ${toLbl} makes up ${fixedPointAsString(edge.attributes.pct_of_producer_input)}% of the inputs to ${toText}`;
     }
     throw Error('Unknown edge type ' + edge.e_type);
   }

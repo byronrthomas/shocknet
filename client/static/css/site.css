@@ -214,3 +214,7 @@ body {
     position: absolute;
     z-index: 1;
   }
+
+.table-hover tbody tr {
+  cursor: pointer;
+}

@@ -1,3 +1,4 @@
+import swal from "sweetalert";
 import { edgeToDestRegion, edgeToSourceRegion, fixedPointAsString, nodeAsDestText, nodeToGraphCommod, nodeToGraphRegion, formatGraphProducer,graphRegionToUserText, edgeToGraphRegions , nodeAsSourceText} from "../graph_model/formatting";
 import { makeGraph } from "./forceGraph"
 
@@ -57,7 +58,7 @@ function nodeHoverTemplate(data) {
 }
 
 function edgeToText(edge) {
-    console.log('Got edge data', edge);
+    // console.log('Got edge data', edge);
     const tradedCommodity = formatGraphProducer(edge.from_id);
     if (edge.e_type === 'critical_industry_of') {
       const toReg = edgeToDestRegion(edge);
@@ -91,13 +92,17 @@ export function updateNetwork(network, shocks) {
     annotateShockPaths(shockPaths, shocks['reachable_nodes']);
     console.log('Annotated shock paths =', shockPaths);
 
-    const vis = makeGraph({paths: shockPaths}, {
+    const {svgElem, error} = makeGraph({paths: shockPaths}, {
         nodeLabel: shortNodeNames, 
         labelIsMultiline: false,
         clientWidth: network.targetElem.clientWidth,
         parentElem: network.targetElem,
         nodeHoverTemplate,
         linkHoverTemplate: edgeToText});
-    network.targetElem.appendChild(vis);
+    if (error) {
+        swal('Unable to visualise shock network', 'Under the current model assumptions, the shock network affecting these producers is too large to conveniently visualise. You should consider tightening your assumptions (raising input / import thresholds), or selecting fewer producers to protect in a single analysis.', 'warning');
+    } else {
+        network.targetElem.appendChild(svgElem);
+    }
 
 }

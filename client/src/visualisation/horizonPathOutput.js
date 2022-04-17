@@ -2,10 +2,10 @@ import {formatGraphProducer, fixedPointAsString, nodeAsDestText,graphProducerToG
 import {nonTradables} from '../graph_model/refData';
 
 function edgeToTableRows(edge, firstCellText, totalPathCount, visitedImportEdges) {
-    console.log('Asked to make a row for', edge);
-    console.log('edge', edge);
-    console.log('firstCellText', firstCellText);
-    console.log('visitedImportEdges', visitedImportEdges);
+    // console.log('Asked to make a row for', edge);
+    // console.log('edge', edge);
+    // console.log('firstCellText', firstCellText);
+    // console.log('visitedImportEdges', visitedImportEdges);
     const tradedCommodity = formatGraphProducer(edge.from_id);
     const producedCommodity = formatGraphProducer(edge.to_id);
     
@@ -35,8 +35,8 @@ function tradeableInput(producerId) {
 }
 
 function formatEdgeList(targetId, edges, totalPathsToTarget) {
-    console.log('Running for targetId', targetId);
-    console.log('About to format edge list', edges);
+    // console.log('Running for targetId', targetId);
+    // console.log('About to format edge list', edges);
     let result = '';
     let addedEdges = false;
     const visitedImportEdges = new Set();
@@ -78,8 +78,8 @@ export function updatePaths(shockPathDetails, shockDetailsOmitted, edgesByTarget
     shockPathDetails.innerHTML = '';
     shockDetailsOmitted.innerText = '';
 
-    console.log('edgesByTarget', edgesByTarget);
-    console.log('distinctPathCountsByTarget', distinctPathCountsByTarget);
+    // console.log('edgesByTarget', edgesByTarget);
+    // console.log('distinctPathCountsByTarget', distinctPathCountsByTarget);
     showEdgesByTarget(shockPathDetails, shockDetailsOmitted, edgesByTarget, distinctPathCountsByTarget);
 
 }

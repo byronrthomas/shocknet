@@ -63,6 +63,7 @@ export function makeLevels(paths) {
     return levels;
 }
 
+const MAX_LEVEL_WIDTH = 25;
 export function makeLayout(paths) {
     const levels = makeLevels(paths);
     console.log('Levels = ', levels);
@@ -102,7 +103,8 @@ export function makeLayout(paths) {
         canvasHeight: NODE_PADDING * 2 + ySep * levels.length,
         canvasWidth: NODE_PADDING * 2 + widestLevelWidth,
         nodes: allNodes,
-        idToLocation
+        idToLocation,
+        safeToLayout: widestLevelCount < MAX_LEVEL_WIDTH
     };
 }
 
@@ -142,7 +144,7 @@ export function makeGraph({paths}, {
             .attr('class', 'center-block')
             .attr("viewBox", [0, 0, 0, 0])
             .style("font", "10px sans-serif");
-        return svg.node();
+        return {svgElem: svg.node()};
     }
     
     const layout = makeLayout(paths);
@@ -258,6 +260,6 @@ export function makeGraph({paths}, {
             .style('font-family', '"Helvetica Neue", Helvetica, Arial, sans-serif');
       
       
-        return svg.node();
+        return {svgElem: svg.node(), error: !layout.safeToLayout};
 
 }

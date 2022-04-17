@@ -69,6 +69,10 @@ export function makeLayout(paths) {
 
     const widestLevelCount = Math.max(...levels.map(l => l.length));
     const widestLevelWidth = MIN_X_SEPARATION * widestLevelCount;
+    let ySep = MIN_Y_SEPARATION
+    if (widestLevelCount > levels.length + 1) {
+        ySep = MIN_Y_SEPARATION * (widestLevelCount / (levels.length + 1));
+    }
     let nextY = NODE_PADDING;
     const allNodes = [];
     const idToLocation = {};
@@ -92,10 +96,10 @@ export function makeLayout(paths) {
             nextX += xInc;
             idToLocation[node.id] = {x: node.x, y: node.y};
         }
-        nextY += MIN_Y_SEPARATION;
+        nextY += ySep;
     }
     return {
-        canvasHeight: NODE_PADDING * 2 + MIN_Y_SEPARATION * levels.length,
+        canvasHeight: NODE_PADDING * 2 + ySep * levels.length,
         canvasWidth: NODE_PADDING * 2 + widestLevelWidth,
         nodes: allNodes,
         idToLocation

@@ -1,6 +1,7 @@
 import Datamap from 'datamaps';
 import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText, formatFixedPoint, fixedPointAsString, nodeToUserTextComponents } from '../graph_model/formatting';
 import { distinctColor } from './colors';
+import { clearPathDetails, clearTable, addTableRow } from './sharedWidgetLogic';
 
 var defaultOptions = {
     scope: 'world',
@@ -510,11 +511,6 @@ function showPathsToEndPoint({shockPathHdr, shockPathDetails}, {graphRegion}, al
 
 
 
-function clearPathDetails({shockPathHdr, shockPathDetails}) {
-  shockPathHdr.innerHTML = '';
-  shockPathDetails.innerHTML = '';
-}
-
 function formatPathSummary(path) {
   const startEdge = path[0];
   const fromText = nodeAsSourceText({v_id: startEdge.from_id, v_type: startEdge.from_type});
@@ -530,13 +526,6 @@ function pathToSummaryRow(path) {
   const toText = nodeAsDestText({v_id: finalEdge.to_id, v_type: finalEdge.to_type});
   return `<td>Shock from ${fromCommod} in</td><td>${fromLbl}</td>
   <td>passes via ${path.length} transfers to shock</td><td>${toText}</td>`;
-}
-
-function addTableRow(tableElem, innerHtml, clickHandler) {
-  const tr = document.createElement('tr');
-  tr.innerHTML = innerHtml;
-  tr.addEventListener('click', clickHandler);
-  tableElem.appendChild(tr);
 }
 
 function showPathDetail({shockPathHdr, shockPathDetails}, path) {
@@ -558,12 +547,6 @@ function showPathSummaries(tblAllShockedPaths, allPaths, pathDetailsElems) {
   }
 }
 
-function clearAllPathsTable(tblAllShockedPaths) {
-  const allChildren = [...tblAllShockedPaths.childNodes];
-  for (const child of allChildren) {
-    tblAllShockedPaths.removeChild(child);
-  }
-}
 
 export function mapShocks(shock_map, pathDetailsElems, allPathsListElem, affectedCountryData, sectorLinkData, allPaths) {
   mode = SHOCK_TRANSFER_MODE;
@@ -580,7 +563,7 @@ export function mapShocks(shock_map, pathDetailsElems, allPathsListElem, affecte
 
   // Reset the path details view
   clearPathDetails(pathDetailsElems);
-  clearAllPathsTable(allPathsListElem);
+  clearTable(allPathsListElem);
   // Now reset any previous click handlers
   var subunits = shock_map.svg.select('g.datamaps-subunits');
   subunits.selectAll('path.datamaps-subunit').on('click', null);

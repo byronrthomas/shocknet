@@ -37,6 +37,11 @@ This project includes data sets from [Harvard Business School Behavioural Financ
 
 **Description**: 
 
+Demo video: ShockNet in action, how it solves the problem statement **TODO-LINK**
+
+How it works video: [ShockNet's dataset, use of graph technology, and software stack (4mins)](https://youtu.be/00j4S_U0LsQ)
+
+
 Explain what your project is trying to accomplish and how you utilized graph technology to achieve those goals. 
 Describe how your submission is relevant to the problem statement and why it is impactful to the world. Remember to link your submission video here. 
 
@@ -176,3 +181,24 @@ Please give credit to other projects, videos, talks, people, and other sources t
 Narayanan, G., Badri, Angel Aguiar and Robert McDougall, Eds. 2012. Global Trade, Assistance, and Production: The GTAP 8 Data Base, Center for Global Trade Analysis, Purdue University
 
 I extracted this data using the steps documented [here](./docs/data-extraction.md)
+
+
+## Developing ShockNet
+
+### Package for Docker
+In order to build the JS assets for docker, and tag a new docker image run from the root:
+
+```
+BUILD_FOR_DOCKER=1 ./build-client.sh && docker build -t shocknet:0.5.6 .
+```
+
+Do not check in the updated JS assets.
+
+### Package for Python
+In order to simply build for serving from python running locally
+
+```
+./build-client.sh
+```
+
+This will place the JS assets in the python static assets folder - you should check these in.

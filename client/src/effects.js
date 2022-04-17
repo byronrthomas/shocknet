@@ -134,6 +134,9 @@ function runShockReach(vertices, /*handler*/) {
             const affectedCountryData = prepareCountryData(response['data']);
             const sectorLinkData = prepareLinkData(response['data']);
             mapShocks(mapControl, pathsOutputElems, allPathsListElem, affectedCountryData, sectorLinkData, response['data']['all_paths']);
+            if (response.data.all_paths.length === 0) {
+                swal('No results to display', 'No shocks starting from these producers reach any critical industries under your model assumptions - perhaps you should loosen the assumptions (decrease some thresholds)?', 'info');
+            }
         })
         .catch(function (error) 
         {

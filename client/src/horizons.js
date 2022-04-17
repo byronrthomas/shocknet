@@ -129,6 +129,9 @@ function runShockOrigination(vertices, /*handler*/) {
             console.log('Got a successful response');
             console.log(response['data']);
             updateNetwork(shockVis, response['data']);
+            if (response.data.all_paths.length === 0) {
+                swal('No results to display', 'Under the current model assumptions, no shocks are able to reach the producers you wish to protect - perhaps you should loosen the assumptions (decrease some thresholds)?', 'info');
+            }
         })
         .catch(function (error) 
         {

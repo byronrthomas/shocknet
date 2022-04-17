@@ -119,6 +119,12 @@ function runShockGroups(useWeakAnalysis) {
             console.log('Got a successful response');
             console.log(response['data']);
             mapShockGroups(mapControl, response['data']);
+            if (response.data.communities.length === 0) {
+                const analysisText = useWeakAnalysis ?
+                    'no countries are able to pass shocks from their producers to critical industries of others' :
+                    'no pair of countries both pass shocks from their producer to a critical industry of the other, and receive shocks to a critical industry from a producer of the other';
+                swal('No country groups', `Under the current model assumptions, ${analysisText}. All countries are isolated under these assumptions.`, 'info');
+            }
         })
         .catch(function (error) 
         {

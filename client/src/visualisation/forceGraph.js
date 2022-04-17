@@ -66,6 +66,7 @@ export function makeLevels(paths) {
 export function makeLayout(paths) {
     const levels = makeLevels(paths);
     console.log('Levels = ', levels);
+
     const widestLevelCount = Math.max(...levels.map(l => l.length));
     const widestLevelWidth = MIN_X_SEPARATION * widestLevelCount;
     let nextY = NODE_PADDING;
@@ -131,6 +132,15 @@ export function makeGraph({paths}, {
         nodeHoverTemplate,
         linkHoverTemplate
     }) {
+    if (paths.length === 0) {
+        const svg = d3.create("svg")
+            .attr('width', clientWidth)
+            .attr('class', 'center-block')
+            .attr("viewBox", [0, 0, 0, 0])
+            .style("font", "10px sans-serif");
+        return svg.node();
+    }
+    
     const layout = makeLayout(paths);
     const links = paths.flat(1);
     console.log('Layout =', layout);

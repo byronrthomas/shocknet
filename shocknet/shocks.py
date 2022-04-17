@@ -15,12 +15,15 @@ def assert_conditioned(conn):
     if not res:
         raise Exception("Not yet projected the graph to a conditioned form - cannot interact with shock info")
 
+def edge_id(edge):
+    return f"{edge['from_id']}-{edge['to_id']}"
+
 def dedupe_edges_from_paths(paths):
     added_edges = set()
     result = []
     for path in paths:
         for edge in path:
-            edge_desc = f"{edge['from_id']}-{edge['to_id']}"
+            edge_desc = edge_id(edge)
             if edge_desc not in added_edges:
                 result.append(edge)
                 added_edges.add(edge_desc)
@@ -150,6 +153,63 @@ def reverse_paths(paths):
         res.append(rev_path)
     return res
 
+
+def producer_id_to_country(id):
+    return id[0:3]
+
+
+# Let's annotate edges s.t. you get
+# All shock transfers that are under the control of the target country
+# - production shock that ends in target country, 
+# - or trade shock that ends in target country
+# Order them by lowest value first
+# And count the number of paths they appear in
+def annotate_paths_for_origination(paths):
+    # Paths are still reversed at the moment, so path[0] is in fact the producer
+    # they wish to protect
+    edge_ids_by_path_target = {p[0]['from_id']: set() for p in paths}
+    edge_counts = {}
+    edges_by_path_target = {p[0]['from_id']: [] for p in paths}
+    source_nodes_by_path_target = {p[0]['from_id']: set() for p in paths}
+    
+    for p in paths:
+        path_target = p[0]['from_id']
+        path_target_country = producer_id_to_country(path_target)
+        already_known_edges = edge_ids_by_path_target[path_target]
+        for e in p:
+            e_id = edge_id(e)
+            # NOTE: edges reversed, hence from id
+            e_target_country = producer_id_to_country(e['from_id'])
+            if e_target_country == path_target_country:
+                # Don't add the same edge twice
+                if e_id not in already_known_edges:
+                    edges_by_path_target[path_target].append(e)
+                    already_known_edges.add(e_id)
+
+            if e_id not in edge_counts:
+                edge_counts[e_id] = 1
+            else:
+                edge_counts[e_id] += 1
+            source_nodes_by_path_target[path_target].add(e['to_id'])
+
+    for elist in edges_by_path_target.values():
+        elist.sort(key=lambda e: e['attributes']['market_val_dollars'])
+
+    # Put the edge counts back on
+    for p in paths:
+        for e in p:
+            e['attributes']['path_count'] = edge_counts[edge_id(e)]
+        # every non-terminal edge is also a path from itself to the target
+        # and on a path from every non-terminal earlier in the path
+        curr_count = 1
+        for i in range(len(p) - 2, -1, -1):
+            p[i]['attributes']['path_count'] += curr_count
+            curr_count += 1
+
+    return {
+        'edges_by_path_target': edges_by_path_target,
+        'total_paths_by_path_target': {k: len(v) for k, v in source_nodes_by_path_target.items()}}
+    
 def run_shock_origination_query(conn, endpoint_vertices):
     assert_conditioned(conn)
 
@@ -180,16 +240,20 @@ def run_shock_origination_query(conn, endpoint_vertices):
     # conditioned graph
     # Calculate all of the paths through it for the convenience of the front-end
     # but return all of the edges (everything reachable counts in this query,
-    # whereas in the spread analysis we focus on what countries can be reached)
+    # whereas in the spread analysis we focus on which countries can be reached)
     all_paths = calculate_all_paths(edges, endpoint_ids, originating_producer_ids)
     print(f'Found {len(all_paths)} paths')
     edge_source_ids = {e['from_id'] for e in edges}
     edge_dest_ids = {e['to_id'] for e in edges}
     reachable_node_ids = edge_source_ids.union(edge_dest_ids)
+    edge_annotations = annotate_paths_for_origination(all_paths)
+    edges_by_targets = edge_annotations['edges_by_path_target']
     return {
         'reachable_nodes': [node for node in all_nodes if node['v_id'] in reachable_node_ids],
         'reachable_edges': db.reverse_edges(edges),
-        'all_paths': reverse_paths(all_paths)}
+        'all_paths': reverse_paths(all_paths),
+        'domestic_edges_by_targets': {k: db.reverse_edges(v) for k,v in edges_by_targets.items()},
+        'distinct_path_counts_by_targets': edge_annotations['total_paths_by_path_target']}
 
 def format_percentage(fixed):
     return f'{fixed / 10000.0}%'
@@ -205,7 +269,7 @@ def condition_graph_fixed_point(conn, input_thresh, import_thresh, critical_ind_
     res = conn.runInterpretedQuery(db.read_resource('resources/gsql_queries/condition_graph.gsql'), params)
     print(res)
     set_condition(conn, input_thresh=input_thresh, import_thresh=import_thresh, critical_ind_gdp_thresh=critical_ind_gdp_thresh, critical_ind_export_thresh=critical_ind_export_thresh, critical_ind_skilled_lab_thresh=critical_ind_skilled_lab_thresh, critical_ind_unskilled_lab_thresh=critical_ind_unskilled_lab_thresh, critical_ind_meets_all_thresholds=critical_ind_meets_all_thresholds)
-    
+
 
 def summarise_country_groups_from_query(all_nodes, group_attrib_name):
     country_nodes = [c for c in all_nodes if c['v_type'] == 'country']

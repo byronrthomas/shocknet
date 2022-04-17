@@ -532,7 +532,7 @@ function showPathDetail({shockPathHdr, shockPathDetails}, path) {
   // console.log('Going to show paths based on ', mapData);
   // console.log('Will add to', pathsOutputElem);
   // console.log('Got paths', allPaths);
-  shockPathHdr.innerHTML = `<strong>Path  ${formatPathSummary(path)}</strong><br>`;
+  shockPathHdr.innerHTML = `<strong>Chain of  ${formatPathSummary(path)}</strong><br>`;
   const fullPathOutput = formatPath(path, false);
   shockPathDetails.innerHTML = fullPathOutput;
 }

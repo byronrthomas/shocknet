@@ -1,7 +1,11 @@
 import {formatGraphProducer, fixedPointAsString, nodeAsDestText,graphProducerToGraphCommod} from '../graph_model/formatting';
 import {nonTradables} from '../graph_model/refData';
 
-function edgeToTableRows(edge, firstCellText, totalPathCount, visitedImportEdges) {
+function importerEdgeId(edge) {
+    return `${formatGraphProducer(edge.from_id)}-imports-${edge.to_id}`;
+}
+
+function edgeToTableRows(edge, firstCellText, totalPathCount, visitedImportEdges, importerSummaries) {
     // console.log('Asked to make a row for', edge);
     // console.log('edge', edge);
     // console.log('firstCellText', firstCellText);
@@ -10,15 +14,17 @@ function edgeToTableRows(edge, firstCellText, totalPathCount, visitedImportEdges
     const producedCommodity = formatGraphProducer(edge.to_id);
     
     if (edge.e_type === 'trade_shock') {
-        const importEdgeId = `${tradedCommodity}-imports-${edge.to_id}`;
+        const importEdgeId = importerEdgeId(edge);
         if (visitedImportEdges.has(importEdgeId)) return '';
         visitedImportEdges.add(importEdgeId);
+
+        const pathCount = importerSummaries[importEdgeId];
         
         return `<tr><td>${firstCellText}</td>` + 
             `<td>${producedCommodity}</td>` +
             `<td>$${fixedPointAsString(edge.attributes.market_val_dollars)}M</td>` +
             `<td>${tradedCommodity} imports</td>` +
-            `<td>${edge.attributes.path_count} of ${totalPathCount}</td></tr>\n`;
+            `<td>${pathCount} of ${totalPathCount}</td></tr>\n`;
     }
     if (edge.e_type === 'production_shock') {
         return `<tr><td>${firstCellText}</td>` + 
@@ -34,17 +40,32 @@ function tradeableInput(producerId) {
     return !nonTradables.has(graphProducerToGraphCommod(producerId));
 }
 
+function summariseImporters(edges) {
+    const importerSummaries = {};
+    for (const edge of edges) {
+        if (edge.e_type !== 'trade_shock') continue;
+        const eid = importerEdgeId(edge);
+        if (!(eid in importerSummaries)) {
+            importerSummaries[eid] = edge.attributes.path_count;
+        } else {
+            importerSummaries[eid] += edge.attributes.path_count;
+        }
+    }
+    return importerSummaries;
+}
+
 function formatEdgeList(targetId, edges, totalPathsToTarget) {
     // console.log('Running for targetId', targetId);
     // console.log('About to format edge list', edges);
     let result = '';
     let addedEdges = false;
     const visitedImportEdges = new Set();
+    const importerSummaries = summariseImporters(edges);
     for (const edge of edges) {
         if (tradeableInput(edge['from_id'])) {
             // Only put the target in the first row
             const firstCellTxt = addedEdges ? '' : `<strong>${nodeAsDestText({v_type: 'producer', v_id: targetId})}</strong>`;
-            result += edgeToTableRows(edge, firstCellTxt, totalPathsToTarget, visitedImportEdges);
+            result += edgeToTableRows(edge, firstCellTxt, totalPathsToTarget, visitedImportEdges, importerSummaries);
             result += '\n';
             addedEdges = true;
         }

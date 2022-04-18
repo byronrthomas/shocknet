@@ -29,7 +29,7 @@ def dedupe_edges_from_paths(paths):
                 added_edges.add(edge_desc)
     return result
 
-def calculate_all_paths(edges, starting_ids, end_ids):
+def calculate_all_paths(edges, starting_ids):
     edges_by_source = {}
     for e in edges:
         src_id = e['from_id']
@@ -37,7 +37,8 @@ def calculate_all_paths(edges, starting_ids, end_ids):
             edges_by_source[src_id] = []
         edges_by_source[src_id].append(e)
     
-    finished_paths = []
+    all_paths = []
+    max_paths = []
     paths_to_extend = [[{'to_id': start}] for start in starting_ids]
     while paths_to_extend:
         # print(f'Currently got {len(paths_to_extend)} to extend')
@@ -50,13 +51,21 @@ def calculate_all_paths(edges, starting_ids, end_ids):
                     new_path = path.copy()
                     new_path.append(e)
                     next_to_extend.append(new_path)
+                    all_paths.append(new_path)
+
             else:
                 # print(f'No edges leading from end of path {path[-1]["to_id"]} - considering to be finished')
-                finished_paths.append(path)
+                max_paths.append(path)
         paths_to_extend = next_to_extend
 
     # Drop the dummy edge from the start of the path, and remove any singleton paths
-    return [path[1:] for path in finished_paths if len(path) > 1]
+    all_paths = [path[1:] for path in all_paths if len(path) > 1]
+    max_paths = [path[1:] for path in max_paths if len(path) > 1]
+    return {'all_paths': all_paths, 'max_paths': max_paths}
+
+def calculate_max_paths(edges, starting_ids):
+    return calculate_all_paths(edges, starting_ids)['max_paths']
+
 
 
 def fetch_neighbours(conn, vertices, edge_type):
@@ -131,7 +140,7 @@ def run_affected_countries_query(conn, supply_shocked_vertices):
     print('pre-filtered edge count', len(edges))
     affected_country_ids = [c['v_id'] for c in affected_countries]
     starting_ids = [p['v_id'] for p in producer_vertices]
-    all_paths = calculate_all_paths(edges, starting_ids, affected_country_ids)
+    all_paths = calculate_max_paths(edges, starting_ids)
     # Finally filter to those ending where we wanted
     end_ids_set = set(affected_country_ids)
     all_paths = [path for path in all_paths if path[-1]['to_id'] in end_ids_set]
@@ -164,18 +173,19 @@ def producer_id_to_country(id):
 # - or trade shock that ends in target country
 # Order them by lowest value first
 # And count the number of paths they appear in
-def annotate_paths_for_origination(paths):
+def annotate_paths_for_origination(all_paths):
     # Paths are still reversed at the moment, so path[0] is in fact the producer
     # they wish to protect
-    edge_ids_by_path_target = {p[0]['from_id']: set() for p in paths}
+    edge_ids_by_path_target = {p[0]['from_id']: set() for p in all_paths}
     edge_counts = {}
-    edges_by_path_target = {p[0]['from_id']: [] for p in paths}
-    source_nodes_by_path_target = {p[0]['from_id']: set() for p in paths}
+    local_edges_by_path_target = {p[0]['from_id']: [] for p in all_paths}
+    counts_by_path_target = {p[0]['from_id']: 0 for p in all_paths}
     
-    for p in paths:
+    for p in all_paths:
         path_target = p[0]['from_id']
         path_target_country = producer_id_to_country(path_target)
         already_known_edges = edge_ids_by_path_target[path_target]
+        counts_by_path_target[path_target] += 1
         for e in p:
             e_id = edge_id(e)
             # NOTE: edges reversed, hence from id
@@ -183,32 +193,26 @@ def annotate_paths_for_origination(paths):
             if e_target_country == path_target_country:
                 # Don't add the same edge twice
                 if e_id not in already_known_edges:
-                    edges_by_path_target[path_target].append(e)
+                    local_edges_by_path_target[path_target].append(e)
                     already_known_edges.add(e_id)
 
             if e_id not in edge_counts:
                 edge_counts[e_id] = 1
             else:
                 edge_counts[e_id] += 1
-            source_nodes_by_path_target[path_target].add(e['to_id'])
+            
 
-    for elist in edges_by_path_target.values():
+    for elist in local_edges_by_path_target.values():
         elist.sort(key=lambda e: e['attributes']['market_val_dollars'])
 
     # Put the edge counts back on
-    for p in paths:
+    for p in all_paths:
         for e in p:
             e['attributes']['path_count'] = edge_counts[edge_id(e)]
-        # every non-terminal edge is also a path from itself to the target
-        # and on a path from every non-terminal earlier in the path
-        curr_count = 1
-        for i in range(len(p) - 2, -1, -1):
-            p[i]['attributes']['path_count'] += curr_count
-            curr_count += 1
 
     return {
-        'edges_by_path_target': edges_by_path_target,
-        'total_paths_by_path_target': {k: len(v) for k, v in source_nodes_by_path_target.items()}}
+        'local_edges_by_path_target': local_edges_by_path_target,
+        'total_paths_by_path_target': counts_by_path_target}
     
 def run_shock_origination_query(conn, endpoint_vertices):
     assert_conditioned(conn)
@@ -235,23 +239,27 @@ def run_shock_origination_query(conn, endpoint_vertices):
     all_nodes = res[0]['res']
     print('pre-filtered edge count', len(edges))
     endpoint_ids = [p['v_id'] for p in producer_vertices]
-    originating_producer_ids = [p['v_id'] for p in all_nodes if p['v_id'] not in endpoint_ids]
     # In terms of what we get back here, it's essentially a subgraph of the
     # conditioned graph
     # Calculate all of the paths through it for the convenience of the front-end
     # but return all of the edges (everything reachable counts in this query,
     # whereas in the spread analysis we focus on which countries can be reached)
-    all_paths = calculate_all_paths(edges, endpoint_ids, originating_producer_ids)
-    print(f'Found {len(all_paths)} paths')
+    
+    # return {'edges': edges, 'endpoint_ids': endpoint_ids}
+
+    paths = calculate_all_paths(edges, endpoint_ids)
+    max_paths = paths['max_paths']
+    all_paths = paths['all_paths']
+    print(f'Found {len(max_paths)} max paths and {len(all_paths)} paths in total')
     edge_source_ids = {e['from_id'] for e in edges}
     edge_dest_ids = {e['to_id'] for e in edges}
     reachable_node_ids = edge_source_ids.union(edge_dest_ids)
     edge_annotations = annotate_paths_for_origination(all_paths)
-    edges_by_targets = edge_annotations['edges_by_path_target']
+    edges_by_targets = edge_annotations['local_edges_by_path_target']
     return {
         'reachable_nodes': [node for node in all_nodes if node['v_id'] in reachable_node_ids],
         'reachable_edges': db.reverse_edges(edges),
-        'all_paths': reverse_paths(all_paths),
+        'all_paths': reverse_paths(max_paths),
         'domestic_edges_by_targets': {k: db.reverse_edges(v) for k,v in edges_by_targets.items()},
         'distinct_path_counts_by_targets': edge_annotations['total_paths_by_path_target']}
 

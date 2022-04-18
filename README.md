@@ -150,7 +150,7 @@ After the process has finished the icons for the two queries should look like th
 
 ### Troubleshooting
 
-If you see any issues with starting shocknet - either it hangs indefinitely or gives an error like `local variable 'res' referenced before assignment` - double-check your .env file is present in the current directory, the credentials and hostname are correct, and check that your Tigergraph instance is up and running.
+If you see any issues with starting shocknet - either it hangs indefinitely or gives an error like `local variable 'res' referenced before assignment` or `KeyError: 'HOSTNAME'` - double-check your .env file is present in the current directory, the credentials and hostname inside it are correct, and check that your Tigergraph instance is up and running.
 
 If you get clashes with other graphs in the same instance, then you may have to drop them, you can pass the `--drop-all-schema` args to the initialise process to do this. Finally, if you have any issues with the secret, you can always manually create one in GraphStudio Admin page, and add it to the `.env` file either adding or replacing a line starting `SECRET=`.
 

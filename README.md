@@ -1,18 +1,7 @@
 ## Other TODOs
-* Tidy up any python / JS that may now be defunct
-* Try and avoid a new user needing to make a secret
 * Add some licensing attribution onto page
 * Stick a tigergaph attrib on page
-* Instructions has to include the query install step (or start from a starter that would have stuff - although then we get data too :( )
 
-
-## Troubleshooting
-See an error like ("Please run 'gadmin config set RESTPP.Factory.EnableAuth true' to enable this endpoint.", 'REST-1000'). This can mean that you're not running against TG cloud but instead against a locally installed TG Enterprise instance which doesn't have the same security setup. In order to make compatible you need to take the following steps to reconfigure Tigergraph.
-
-On the host running Tigergraph Enterprise run the following:
-`gadmin config set RESTPP.Factory.EnableAuth true`
-`gadmin config apply`
-Need to do `gadmin stop all` followed by `gadmin start all`
 
 ## About
 
@@ -24,8 +13,6 @@ TODO
 
 ## Licenses & attribution
 
-PROBABLY DOESN'T?
-This project includes data sets from [Harvard Business School Behavioural Finance & Financial Stability](https://www.hbs.edu/behavioral-finance-and-financial-stability/data/Pages/global.aspx).
 
 * Ensure check licences from any other libs - can massively tidy up python deps
 
@@ -40,6 +27,14 @@ This project includes data sets from [Harvard Business School Behavioural Financ
 Demo video: ShockNet in action, how it solves the problem statement **TODO-LINK**
 
 How it works video: [ShockNet's dataset, use of graph technology, and software stack (4mins)](https://youtu.be/00j4S_U0LsQ)
+
+TL;DR version of How it Works:
+1. We derive data from GTAP database, and extract it into a file format ShockNet can use easily (stored in ./resources/gtap_extracted)
+2. We write this into TigerGraph DB as a set of countries, producers (production of a sector within a country), and importers (imports of a commodity to a single country)
+3. We add edges to show the relationships of how producers use inputs (from other producers / importers)
+4. When ShockNet app is running, the user changes model assumptions on how important a given level of input / import is - this causes new "shock" edges to be written to the Graph DB
+5. Using GSQL queries running from python, and Javascript to visualise, ShockNet then provides a set of analysis tools to help the user investigate and understand how supply shocks will pass from country to country and how to avoid crises - these operate on the "shock" edges version of the graph that bakes in the assumptions
+
 
 
 Explain what your project is trying to accomplish and how you utilized graph technology to achieve those goals. 
@@ -158,6 +153,17 @@ After the process has finished the icons for the two queries should look like th
 If you see any issues with starting shocknet - either it hangs indefinitely or gives an error like `local variable 'res' referenced before assignment` - double-check your .env file is present in the current directory, the credentials and hostname are correct, and check that your Tigergraph instance is up and running.
 
 If you get clashes with other graphs in the same instance, then you may have to drop them, you can pass the `--drop-all-schema` args to the initialise process to do this. Finally, if you have any issues with the secret, you can always manually create one in GraphStudio Admin page, and add it to the `.env` file either adding or replacing a line starting `SECRET=`.
+
+#### When running against a non-vanilla Tigergraph cloud
+You might see an error like ("Please run 'gadmin config set RESTPP.Factory.EnableAuth true' to enable this endpoint.", 'REST-1000'). This can mean that you're not running against TG cloud but instead against a locally installed TG Enterprise instance which doesn't have the same security setup. In order to make compatible you need to take the following steps to reconfigure Tigergraph.
+
+On the host running Tigergraph Enterprise run the following:
+`gadmin config set RESTPP.Factory.EnableAuth true`
+`gadmin config apply`
+Need to do `gadmin stop all` followed by `gadmin start all`
+
+I'm not sure how to do the equivalent against Tigergraph cloud, but never experienced the issue there.
+
 
 ## Known Issues and Future Improvements
 

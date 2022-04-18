@@ -29,11 +29,13 @@
       </div>
 
       <div class="subpage-header">
-        <h3 class="subpage-title">Horizon scanning mode: what future shocks might affect our chosen sectors</h3>
+        <h3 class="subpage-title">Horizon scanning mode: what shocks might affect sectors that need protecting 
+          <a href="https://byronrthomas.github.io/ShockNetDocs/#horizon-scanning-mode" target="_blank"><span class="glyphicon glyphicon-question-sign gli-navbar"></span></a>
+        </h3>
       </div>
 
       <div class="well">
-        <h3>Set assumptions on how shocks transfer</h3>
+        <h3>Set assumptions on how shocks transfer <a href="https://byronrthomas.github.io/ShockNetDocs/#setting-model-assumptions" target="_blank"><span class="glyphicon glyphicon-question-sign gli-header"></span></a></h3>
       </div>
 
       <div class="flex-row row">
@@ -126,7 +128,7 @@
       </div>
 
       <div class="well">
-        <h3>Select producers of interest - the things you want to protect.</h3>
+        <h3>Select producers of interest - the things you want to protect. <a href="https://byronrthomas.github.io/ShockNetDocs/#selecting-producers-to-protect-from-a-shock" target="_blank"><span class="glyphicon glyphicon-question-sign gli-header"></span></a></h3>
         <p>The model will find all of the other producers that may cause a shock to be transmitted to your choices.</p>
       </div>
 
@@ -392,6 +394,29 @@
         <div id="networkVisualisation" class="center-block"></div>
       </div>
     </div>
+
+    <div class="container">
+      <div id="shockSpreadDetails" class="well">
+        <h3>Influenceable shocks for producers to protect</h3>
+        <p>For each producer to protect that is at risk of shocks,
+          the below shows the shock transfers that occur
+          within the same country - ordered by lowest market value (assumed to be easier
+          to replace / substitute).
+        </p>
+        <table class="table">
+          <thead>
+            <th>Producer to protect</th>
+            <th>Shock arrives via producer</th>
+            <th>Using</th>
+            <th>Of Input</th>
+            <th># of shock paths</th>
+          </thead>
+          <tbody id="tblShockPathDetails"></tbody>
+        </table>
+        <p id="pOmittedProducerDetails"></p>
+      </div>
+    </div>
+
 
     <div class="tooltip">Hover over me
       <span class="tooltiptext">Tooltip text</span>

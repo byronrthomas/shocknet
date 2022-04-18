@@ -218,3 +218,15 @@ body {
 .table-hover tbody tr {
   cursor: pointer;
 }
+
+.gli-header {
+  color: darkgray;
+  font-size: 16px;
+  cursor: help;
+}
+
+.gli-navbar {
+  color: antiquewhite;
+  font-size: 16px;
+  cursor: help;
+}

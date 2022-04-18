@@ -1,5 +1,6 @@
 import Datamap from 'datamaps';
 import { formatGraphRegion, codeToCountry, overrideRegionNameForCode, edgeToGraphRegions, graphRegionToUserText, edgeToDestRegion,  nodeAsSourceText, formatGraphProducer, nodeAsDestText, formatFixedPoint, fixedPointAsString, nodeToUserTextComponents } from '../graph_model/formatting';
+import { nonPlottableRegions } from '../graph_model/refData';
 import { distinctColor } from './colors';
 import { clearPathDetails, clearTable, addTableRow } from './sharedWidgetLogic';
 
@@ -121,6 +122,8 @@ var defaultOptions = {
           return value;
         }
       }
+
+const NON_PLOTTABLE_COUNTRY_CODES = new Set([ 'ASM', 'COK', 'PYF', 'GUM', 'KIR', 'MHL', 'FSM', 'NRU', 'NFK', 'MNP', 'NIU', 'PLW', 'WSM', 'TKL', 'TON', 'TUV', 'WLF', 'HKG', 'MAC', 'SGP', 'MDV', 'BMU', 'SPM', 'AIA', 'ATG', 'ABW', 'BRB', 'VGB', 'CYM', 'DMA', 'GLP', 'MSR', 'ANT', 'KNA', 'LCA', 'VCT', 'TCA', 'VIR', 'MLT', 'LIE', 'AND', 'FRO', 'GIB', 'GGY', 'VAT', 'IMN', 'JEY', 'MCO', 'SMR', 'BHR', 'CPV', 'SHN', 'STP', 'MUS', 'COM', 'MYT', 'SYC', 'ATA', 'BVT', 'IOT']);
 
 function handleArcs (layer, data, options) {
     var self = this,
@@ -246,7 +249,12 @@ function handleArcs (layer, data, options) {
               return path(greatArc(datum))
             }
             var sharpness = val(datum.arcSharpness, options.arcSharpness, datum);
-            return "M" + originXY[0] + ',' + originXY[1] + "S" + (midXY[0] + (50 * sharpness)) + "," + (midXY[1] - (75 * sharpness)) + "," + destXY[0] + "," + destXY[1];
+            const result = "M" + originXY[0] + ',' + originXY[1] + "S" + (midXY[0] + (50 * sharpness)) + "," + (midXY[1] - (75 * sharpness)) + "," + destXY[0] + "," + destXY[1];
+            if (result.includes('NaN')) {
+                console.log(`Problem with arc ${datum.origin} - ${datum.destination}: `, result);
+                return '';
+            }
+            return result;
         })
         .attr('data-info', function(datum) {
           return JSON.stringify(datum);
@@ -291,12 +299,21 @@ function handleArcs (layer, data, options) {
 export function prepareCountryData(rspData) {
   let allCountries = new Set(); 
   rspData.affected_countries.forEach(x => allCountries.add(x.v_id));
+  
   const countryData = {}
   const edges = rspData.reachable_edges;
   // console.log('edges = ', edges);
   // console.log(rspData);
   for ( var edge of edges.filter(e => allCountries.has(e.to_id)) ) {
+    if (nonPlottableRegions.has(edge.to_id)) {
+        console.log('Unable to plot for ', edge.to_id);
+        continue;
+    }
     for ( var cnt of formatGraphRegion(edge.to_id) ) {
+      if (NON_PLOTTABLE_COUNTRY_CODES.has(cnt)) {
+        console.log('Unable to plot for country', cnt);
+        continue;
+      }
       if ( !(cnt in countryData) ) {
         countryData[cnt] = {
           shockedIndustries: [], 
@@ -337,6 +354,10 @@ export function prepareLinkData(rspData) {
   for (var edge of edges) {
     if (edge.from_type === 'producer' && edge.to_type === 'producer') {
       const [fromReg, toReg] = edgeToGraphRegions(edge);
+      if (nonPlottableRegions.has(fromReg) || nonPlottableRegions.has(toReg)) {
+        console.log('Unable to plot an edge between', fromReg, toReg);
+        continue;
+      }
       const fromCountries = formatGraphRegion(fromReg);
       const edgeDetails = {
         'tradedCommodity': formatGraphProducer(edge.from_id),
@@ -346,7 +367,15 @@ export function prepareLinkData(rspData) {
       if (fromReg !== toReg) {
         const toCountries = formatGraphRegion(toReg);
         for ( var fc of fromCountries ) {
+          if (NON_PLOTTABLE_COUNTRY_CODES.has(fc)) {
+            console.log('Unable to plot an edge from', fc);
+            continue;
+          }
           for ( var tc of toCountries ) {
+            if (NON_PLOTTABLE_COUNTRY_CODES.has(tc)) {
+              console.log('Unable to plot an edge to', tc);
+              continue;
+            }
             ensureKeyPresent(tradeByFromAndToCountry, fc, {});
             ensureKeyPresent(tradeByFromAndToCountry[fc], tc, []);
             tradeByFromAndToCountry[fc][tc].push(edgeDetails);
@@ -354,6 +383,10 @@ export function prepareLinkData(rspData) {
         }
       } else {
         for ( fc of fromCountries ) {
+          if (NON_PLOTTABLE_COUNTRY_CODES.has(fc)) {
+            console.log('Unable to plot a local transfer within', fc);
+            continue;
+          }
           ensureKeyPresent(productionWithinCountry, fc, []);
           productionWithinCountry[fc].push(edgeDetails);
         }
@@ -674,6 +707,10 @@ export function mapShockGroups(shock_map, {communities, singletons}, weak_groups
   };
   for (graphRegion of singletons) {
     for (mapCountry of formatGraphRegion(graphRegion)) {
+      if (NON_PLOTTABLE_COUNTRY_CODES.has(mapCountry)) {
+        console.log('Unable to plot country', mapCountry);
+        continue;
+      }
       bubbles.push({
         centered: mapCountry, 
         ...defaultBubble});

@@ -350,3 +350,7 @@ export const regionNamesToMultiCountries = {
 }
 
 export const nonTradables = new Set(["Land", "UnSkLab", "SkLab", "Capital", "NatRes"]);
+
+// These are places where the map doesn't seem to draw the country correctly
+// so we can't accurately plot their data
+export const nonPlottableRegions = new Set(["hkg", "sgp", "mlt", "bhr", "mus"])

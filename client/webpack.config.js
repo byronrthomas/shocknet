@@ -3,7 +3,10 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
-const backendUrl = process.env.BUILD_FOR_DOCKER ? 'http://127.0.0.1:9000' : 'http://127.0.0.1:5000';
+const backendUrl = 
+  process.env.OVERRIDE_BACKEND_URL ? 
+  process.env.OVERRIDE_BACKEND_URL :
+  (process.env.BUILD_FOR_DOCKER ? 'http://127.0.0.1:9000' : 'http://127.0.0.1:5000');
 
 module.exports = {
   mode: 'development',

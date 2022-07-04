@@ -1,4 +1,4 @@
-pyTigerGraph >= 0.0.9, < 0.1.0
+pyTigerGraph >= 0.9.0, < 1.0.0
 pandas >= 1.3, < 1.4
 python-dotenv ~= 0.19
 Flask ~= 2.1.1

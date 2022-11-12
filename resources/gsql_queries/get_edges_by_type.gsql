@@ -1,0 +1,10 @@
+INTERPRET QUERY(STRING sourceVertexType, STRING edgeType, STRING destVertexType) FOR GRAPH shocknet_economic_links { 
+  SetAccum<EDGE> @@Edges;
+  
+  start = {sourceVertexType};
+  
+  tmp = SELECT s FROM start:s -(edgeType:e)- destVertexType
+        ACCUM @@Edges += e;
+  
+  PRINT @@Edges; 
+}
